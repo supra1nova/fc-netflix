@@ -27,4 +27,20 @@ export class UpdateMovieDto {
   @IsString()
   @IsOptional()
   genre?: string;
+
+  // @IsEnum(MovieGenre)
+  // @IsOptional()
+  // test?: string[];
+
+  // @Transform(( transformFnParams) => {
+  //   const movieGenreElement: MovieGenre = MovieGenre[transformFnParams.value];
+  //   if (!movieGenreElement) {
+  //     return undefined
+  //   }
+  //   return transformFnParams.value;
+  // })
+  // test1: keyof typeof MovieGenre;
+
+  @Validate(PasswordValidator, { message: '커스텀 에러 메세지' })
+  test: string;
 }
