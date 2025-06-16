@@ -1,6 +1,6 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator'
 
-enum MovieGenre {
+export enum MovieGenre {
   Fantasy = 'fantasy',
   Horror = 'horror',
   Action = 'action',
@@ -9,9 +9,9 @@ enum MovieGenre {
 export class UpdateMovieDto {
   @IsString()
   @IsOptional()
-  title?: string;
+  title?: string
 
   @IsString()
   @IsOptional()
-  genre?: string;
+  genre?: string
 }

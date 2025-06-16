@@ -1,11 +1,11 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator'
 
 export class CreateMovieDto {
   @IsNotEmpty()
   @IsString()
-  title: string;
+  title: string
 
   @IsNotEmpty()
   @IsString()
-  genre: string;
+  genre: string
 }
