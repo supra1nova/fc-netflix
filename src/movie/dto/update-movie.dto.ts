@@ -1,9 +1,10 @@
-import { IsOptional, IsString } from 'class-validator'
+import { isEmpty, IsOptional, IsString } from 'class-validator'
+import { Transform } from 'class-transformer'
 
 export enum MovieGenre {
-  Fantasy = 'fantasy',
-  Horror = 'horror',
-  Action = 'action',
+  FANTASY = 'Fantasy',
+  HORROR = 'Horror',
+  ACTION = 'Action',
 }
 
 export class UpdateMovieDto {
@@ -11,6 +12,13 @@ export class UpdateMovieDto {
   @IsOptional()
   title?: string
 
+  @Transform(({ value }): any => {
+    if (isEmpty(value)) {
+      return value
+    }
+    const tgtVal = value as string
+    return `${tgtVal.substring(0, 1).toUpperCase()}${tgtVal.substring(1)}`
+  })
   @IsString()
   @IsOptional()
   genre?: string

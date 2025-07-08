@@ -9,17 +9,22 @@ export class MovieService {
   private idCounter: number = 2
 
   constructor() {
+    const movie0 = new Movie()
+    movie0.id = 0
+    movie0.title = '해리포터'
+    movie0.genre = MovieGenre.FANTASY
+
     const movie1 = new Movie()
-    movie1.id = 1
-    movie1.title = '해리포터'
-    movie1.genre = MovieGenre.Fantasy
+    movie0.id = 1
+    movie0.title = '반지의 제왕'
+    movie0.genre = MovieGenre.ACTION
 
     const movie2 = new Movie()
     movie2.id = 2
-    movie2.title = '반지의 제왕'
-    movie2.genre = MovieGenre.Action
+    movie2.title = '스크림'
+    movie2.genre = MovieGenre.HORROR
 
-    this.movies.push(movie1, movie2)
+    this.movies.push(movie0, movie1, movie2)
   }
 
   getMultipleMovies(title?: string): Movie[] {
@@ -58,7 +63,9 @@ export class MovieService {
       throw new NotFoundException('no movie id found')
     }
 
-    Object.assign(movie, updateMovieDto)
+    const updateDto = this.stripUndefined(updateMovieDto)
+    Object.assign(movie, updateDto)
+    console.log(this.movies)
 
     return movie
   }
@@ -74,5 +81,9 @@ export class MovieService {
     movies.splice(movieIdx, 1)
 
     return id
+  }
+
+  stripUndefined(obj: Record<string, any>) {
+    return Object.fromEntries(Object.entries(obj).filter(([_, value]) => value !== undefined))
   }
 }
