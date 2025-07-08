@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "Commonjs",
+    "module": "commonjs",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
@@ -16,6 +16,10 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "types": [
+      "node", // node 있어야 process 인식 가능
+      "jest",  // jest 있어야 test 인식 가능
+    ]
   }
 }
