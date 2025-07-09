@@ -6,11 +6,10 @@ export class CreateMovieDto {
   @IsString()
   title: string
 
+  @IsNotEmpty()
   @Transform(({ value }) => {
     const tgtVal = value as string
-    return `${tgtVal.substring(0, 1).toUpperCase()}${tgtVal.substring(1)}`
+    return `${tgtVal.substring(0, 1)?.toUpperCase()}${tgtVal.substring(1)?.toLowerCase()}`
   })
-  @IsNotEmpty()
-  @IsString()
   genre: string
 }

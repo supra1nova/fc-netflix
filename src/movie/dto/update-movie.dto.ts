@@ -1,5 +1,5 @@
-import { isEmpty, IsOptional, IsString } from 'class-validator'
-import { Transform } from 'class-transformer'
+import { PartialType } from '@nestjs/mapped-types'
+import { CreateMovieDto } from './create-movie.dto'
 
 export enum MovieGenre {
   FANTASY = 'Fantasy',
@@ -7,19 +7,4 @@ export enum MovieGenre {
   ACTION = 'Action',
 }
 
-export class UpdateMovieDto {
-  @IsString()
-  @IsOptional()
-  title?: string
-
-  @Transform(({ value }): any => {
-    if (isEmpty(value)) {
-      return value
-    }
-    const tgtVal = value as string
-    return `${tgtVal.substring(0, 1).toUpperCase()}${tgtVal.substring(1)}`
-  })
-  @IsString()
-  @IsOptional()
-  genre?: string
-}
+export class UpdateMovieDto extends PartialType(CreateMovieDto) {}

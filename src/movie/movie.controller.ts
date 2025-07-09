@@ -9,27 +9,27 @@ export class MovieController {
   constructor(private readonly movieService: MovieService) {}
 
   @Get()
-  getMovies(@Query('title') title?: string): Movie[] {
-    return this.movieService.getMultipleMovies(title)
+  getMovies(@Query('title') title?: string) {
+    return this.movieService.getManyMovies(title)
   }
 
   @Get(':id')
-  getMovie(@Param('id') id: string): Movie {
+  getMovie(@Param('id') id: string) {
     return this.movieService.getMovieById(+id)
   }
 
   @Post()
-  postMovie(@Body() createMovieDto: CreateMovieDto): Movie {
+  postMovie(@Body() createMovieDto: CreateMovieDto) {
     return this.movieService.createMovie(createMovieDto)
   }
 
   @Patch(':id')
-  patchMovie(@Param('id') id: string, @Body() updateMovieDto: UpdateMovieDto): Movie {
+  patchMovie(@Param('id') id: string, @Body() updateMovieDto: UpdateMovieDto) {
     return this.movieService.updateMovie(+id, updateMovieDto)
   }
 
   @Delete(':id')
-  deleteMovie(@Param('id') id: string): number {
+  deleteMovie(@Param('id') id: string) {
     return this.movieService.deleteMovie(+id)
   }
 }
