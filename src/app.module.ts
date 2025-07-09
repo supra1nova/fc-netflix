@@ -1,22 +1,37 @@
 import { Module } from '@nestjs/common'
 import { MovieModule } from './movie/movie.module'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { ConfigModule } from '@nestjs/config'
+import { ConfigModule, ConfigService } from '@nestjs/config'
+import * as Joi from 'joi'
 
 @Module({
-  imports: [MovieModule],
   imports: [
     // 환경변수를 로딩 후 애플케이션 전역에서 사용할 수 있도록 설정
-    ConfigModule.forRoot(),
-    TypeOrmModule.forRoot({
-      type: process.env.DB_TYPE as 'postgres',
-      host: process.env.DB_HOST,
-      port: Number(process.env.DB_PORT),
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_DATABASE,
-      entities: [],
-      synchronize: true,
+    ConfigModule.forRoot({
+      isGlobal: true, // 어떤 모듈에서든 환경 변수 사용 요부
+      validationSchema: Joi.object({
+        ENV: Joi.string().required(),
+        DB_TYPE: Joi.string().valid('postgres', 'mariadb', 'mysql', 'oracle').required(),
+        DB_HOST: Joi.string().required(),
+        DB_PORT: Joi.number().required(),
+        DB_USERNAME: Joi.string().required(),
+        DB_PASSWORD: Joi.string().required(),
+        DB_DATABASE: Joi.string().required(),
+      }),
+    }),
+    // config 모듈이 모두 인스턴스화 한 뒤 TypeOrmModule 내용을 인젝트 받아야 하기 때문에 async 로 처리
+    TypeOrmModule.forRootAsync({
+      useFactory: (configService: ConfigService) => ({
+        type: configService.get<string>('DB_TYPE') as 'postgres',
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
+        entities: [/*'src/!**!/!*.entity{.ts,.js}'*/],
+        synchronize: true,
+      }),
+      inject: [ConfigService],
     }),
     MovieModule,
   ],
