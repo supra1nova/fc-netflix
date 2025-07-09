@@ -1,17 +1,10 @@
-import { IsOptional, IsString } from 'class-validator'
+import { PartialType } from '@nestjs/mapped-types'
+import { CreateMovieDto } from './create-movie.dto'
 
 export enum MovieGenre {
-  Fantasy = 'fantasy',
-  Horror = 'horror',
-  Action = 'action',
+  FANTASY = 'Fantasy',
+  HORROR = 'Horror',
+  ACTION = 'Action',
 }
 
-export class UpdateMovieDto {
-  @IsString()
-  @IsOptional()
-  title?: string
-
-  @IsString()
-  @IsOptional()
-  genre?: string
-}
+export class UpdateMovieDto extends PartialType(CreateMovieDto) {}
