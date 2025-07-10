@@ -12,4 +12,8 @@ export class CreateMovieDto {
     return `${tgtVal.substring(0, 1)?.toUpperCase()}${tgtVal.substring(1)?.toLowerCase()}`
   })
   genre: string
+
+  @IsNotEmpty()
+  @IsString()
+  detail: string
 }
