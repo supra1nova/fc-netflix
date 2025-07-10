@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { CreateMovieDto } from './dto/create-movie.dto'
-import { MovieGenre, UpdateMovieDto } from './dto/update-movie.dto'
+import { UpdateMovieDto } from './dto/update-movie.dto'
 import { Movie } from './entity/movie.entity'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Like, Repository } from 'typeorm'
 
 @Injectable()
 export class MovieService {
@@ -12,17 +12,18 @@ export class MovieService {
     private readonly moviesRepository: Repository<Movie>,
   ) {}
 
-  getManyMovies(title?: string) {
-    /*
-    if (!title) {
-      return this.movies
+  async getManyMovies(title?: string) {
+    if (title) {
+      // return this.moviesRepository.find({ where: { title: Like(`%${title}%`) } })
+      // return this.moviesRepository.findAndCount({ where: { title: Like(`%${title}%`) } })
+      return [
+        await this.moviesRepository.find({ where: { title: Like(`%${title}%`) } }),
+        await this.moviesRepository.count({ where: { title: Like(`%${title}%`) } }),
+      ]
     }
 
-    return this.movies.filter((m) => m.title.includes(title))
-    */
-
-    // return this.moviesRepository.find({ where: { title: title } })
-    return this.moviesRepository.find({ where: { title: title } })
+    // return this.moviesRepository.find()
+    return this.moviesRepository.findAndCount()
   }
 
   getMovieById(id: number) {
