@@ -2,7 +2,6 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import { MovieService } from './movie.service'
 import { CreateMovieDto } from './dto/create-movie.dto'
 import { UpdateMovieDto } from './dto/update-movie.dto'
-import { Movie } from './entity/movie.entity'
 
 @Controller('movie')
 export class MovieController {
