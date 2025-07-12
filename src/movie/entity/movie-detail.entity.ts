@@ -10,6 +10,10 @@ export class MovieDetail extends BaseTable {
   @Column()
   detail: string
 
-  @OneToOne(() => Movie)
+  @OneToOne(
+    () => Movie,
+    // 일대일 관계에서는 생략가능하지만 상대 테이블의 어떤 컬럼을 참조할지 명시하는게 좋음
+    (movie) => movie.id,
+  )
   movie: Movie
 }

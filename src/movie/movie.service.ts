@@ -39,9 +39,7 @@ export class MovieService {
   async createMovie(createMovieDto: CreateMovieDto) {
     const { title, genre, detail } = createMovieDto
 
-    const movieDetail = await this.movieDetailRepository.save({ detail })
-
-    return await this.moviesRepository.save({ title, genre, detail: movieDetail })
+    return await this.moviesRepository.save({ title, genre, detail: { detail } })
   }
 
   // 수정 후 수정된 객체 리턴
