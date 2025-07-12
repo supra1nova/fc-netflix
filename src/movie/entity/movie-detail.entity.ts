@@ -1,6 +1,6 @@
 import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm'
 import { Movie } from './movie.entity'
-import { BaseTable } from './base.entity'
+import { BaseTable } from '../../common/entity/base.entity'
 
 @Entity()
 export class MovieDetail extends BaseTable {

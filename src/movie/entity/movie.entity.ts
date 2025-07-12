@@ -1,5 +1,6 @@
 import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm'
 import { BaseTable } from './base.entity'
+import { BaseTable } from '../../common/entity/base.entity'
 import { MovieDetail } from './movie-detail.entity'
 
 // ManyToOne DIrector -> 감독은 여러개의 영화 제작 가능
