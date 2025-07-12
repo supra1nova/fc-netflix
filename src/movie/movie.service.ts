@@ -15,7 +15,7 @@ export class MovieService {
     private readonly movieDetailRepository: Repository<MovieDetail>,
   ) {}
 
-  async getManyMovies(title?: string) {
+  async findListMovie(title?: string) {
     if (title) {
       return [
         await this.moviesRepository.find({ where: { title: Like(`%${title}%`) }, relations: ['detail'] }),
@@ -26,7 +26,7 @@ export class MovieService {
     return this.moviesRepository.findAndCount({ relations: ['detail'] })
   }
 
-  getMovieById(id: number) {
+  findOneMovie(id: number) {
     return this.moviesRepository.findOne({
       where: {
         id,
@@ -37,17 +37,16 @@ export class MovieService {
 
   // 저장 후 저장된 객체 리턴
   async createMovie(createMovieDto: CreateMovieDto) {
-    const { title, genre, detail } = createMovieDto
+    const { detail, ...movieRest } = createMovieDto
 
-    return await this.moviesRepository.save({ title, genre, detail: { detail } })
+    return await this.moviesRepository.save({ ...movieRest, detail: { detail } })
   }
 
   // 수정 후 수정된 객체 리턴
   async updateMovie(id: number, updateMovieDto: UpdateMovieDto) {
     const { detail, ...movieRest } = updateMovieDto
 
-    const movie = await this.getMovieById(id)
-
+    const movie = await this.findOneMovie(id)
     if (!movie) {
       throw new NotFoundException('no movie id found')
     }
@@ -57,12 +56,11 @@ export class MovieService {
     }
     await this.moviesRepository.update(id, movieRest)
 
-    return await this.getMovieById(id)
+    return await this.findOneMovie(id)
   }
 
   async deleteMovie(id: number) {
-    const movie = await this.getMovieById(id)
-
+    const movie = await this.findOneMovie(id)
     if (!movie) {
       throw new NotFoundException('no movie id found')
     }

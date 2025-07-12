@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common'
 import { DirectorService } from './director.service'
 import { CreateDirectorDto } from './dto/create-director.dto'
 import { UpdateDirectorDto } from './dto/update-director.dto'
@@ -8,27 +8,27 @@ export class DirectorController {
   constructor(private readonly directorService: DirectorService) {}
 
   @Get()
-  findAll() {
-    return this.directorService.findAll()
+  getListDirector(@Query('name') name?: string) {
+    return this.directorService.findListDirector(name)
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.directorService.findOne(+id)
+  getOneDirector(@Param('id') id: string) {
+    return this.directorService.findOneDirector(+id)
   }
 
   @Post()
-  create(@Body() createDirectorDto: CreateDirectorDto) {
-    return this.directorService.create(createDirectorDto)
+  postDirector(@Body() createDirectorDto: CreateDirectorDto) {
+    return this.directorService.createDirector(createDirectorDto)
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDirectorDto: UpdateDirectorDto) {
-    return this.directorService.update(+id, updateDirectorDto)
+  patchDirector(@Param('id') id: string, @Body() updateDirectorDto: UpdateDirectorDto) {
+    return this.directorService.updateDirector(+id, updateDirectorDto)
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.directorService.remove(+id)
+  deleteDirector(@Param('id') id: string) {
+    return this.directorService.deleteDirector(+id)
   }
 }
