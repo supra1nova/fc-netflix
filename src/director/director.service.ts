@@ -43,6 +43,6 @@ export class DirectorService {
       throw new NotFoundException('no director id found')
     }
 
-    await this.directorRepository.softDelete(id)
+    await this.directorRepository.delete(id)
   }
 }

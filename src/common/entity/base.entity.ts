@@ -7,9 +7,6 @@ export class BaseTable {
   @UpdateDateColumn()
   updatedAt: Date
 
-  @DeleteDateColumn()
-  deletedAt: Date
-
   @VersionColumn()
   version: number
 }
