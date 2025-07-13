@@ -112,8 +112,8 @@ export class MovieService {
       throw new NotFoundException('no movie id found')
     }
 
-    // softDelete 는 @DeleteDateColumn() 이 entity 에 존재해야 사용 가능
-    await this.movieDetailRepository.softDelete(movie.detail.id)
-    await this.moviesRepository.softDelete(id)
+    // cascade 가 있음에 따라 movie 부터 삭제 후 연관 테이블의 데이터 삭제 진행
+    await this.moviesRepository.delete(id)
+    await this.movieDetailRepository.delete(movie.detail.id)
   }
 }
