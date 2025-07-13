@@ -33,6 +33,7 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': 'off', // 사용하지 않는 변수 불가 여부
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
       'prettier/prettier': 'error', // prettier 포메팅 규칙을 강제로 eslint 에러로 간주 여부
       semi: ['error', 'never'], // 마지막에 semi-colon 여부, error: 에러처리, never: 세미클론 금지, always: 세미콜론 필수
     },

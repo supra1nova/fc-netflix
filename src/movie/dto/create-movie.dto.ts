@@ -1,18 +1,10 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator'
-import { Transform, Type } from 'class-transformer'
+import { ArrayNotEmpty, IsArray, IsNotEmpty, IsNumber, IsString } from 'class-validator'
+import { Type } from 'class-transformer'
 
 export class CreateMovieDto {
   @IsNotEmpty()
   @IsString()
   title: string
-
-  @IsNotEmpty()
-  @Transform(({ value }) => {
-    const tgtVal = value as string
-    return `${tgtVal.substring(0, 1)?.toUpperCase()}${tgtVal.substring(1)?.toLowerCase()}`
-  })
-  @IsString()
-  genre: string
 
   @IsNotEmpty()
   @IsString()
@@ -22,4 +14,15 @@ export class CreateMovieDto {
   @Type(() => Number)
   @IsNumber()
   directorId: number
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @Type(() => Number)
+  @IsNumber(
+    {},
+    {
+      each: true, // each true 인 경우 배열 내부의 값을 모두 검증
+    },
+  )
+  genreIds: number[]
 }

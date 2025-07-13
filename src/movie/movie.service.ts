@@ -3,9 +3,10 @@ import { CreateMovieDto } from './dto/create-movie.dto'
 import { UpdateMovieDto } from './dto/update-movie.dto'
 import { Movie } from './entity/movie.entity'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Like, Repository } from 'typeorm'
+import { In, Like, Repository } from 'typeorm'
 import { MovieDetail } from './entity/movie-detail.entity'
 import { Director } from '../director/entity/director.entity'
+import { Genre } from '../genre/entities/genre.entity'
 
 @Injectable()
 export class MovieService {
@@ -16,17 +17,22 @@ export class MovieService {
     private readonly movieDetailRepository: Repository<MovieDetail>,
     @InjectRepository(Director)
     private readonly directorRepository: Repository<Director>,
+    @InjectRepository(Genre)
+    private readonly genreRepository: Repository<Genre>,
   ) {}
 
   async findListMovie(title?: string) {
     if (title) {
       return [
-        await this.moviesRepository.find({ where: { title: Like(`%${title}%`) }, relations: ['detail'] }),
+        await this.moviesRepository.find({
+          where: { title: Like(`%${title}%`) },
+          relations: ['detail', 'director', 'genres'],
+        }),
         await this.moviesRepository.count({ where: { title: Like(`%${title}%`) } }),
       ]
     }
 
-    return this.moviesRepository.findAndCount({ relations: ['detail', 'director'] })
+    return this.moviesRepository.findAndCount({ relations: ['detail', 'director', 'genres'] })
   }
 
   findOneMovie(id: number) {
@@ -34,50 +40,70 @@ export class MovieService {
       where: {
         id,
       },
-      relations: ['detail', 'director'],
+      relations: ['detail', 'director', 'genres'],
     })
   }
 
-  // 저장 후 저장된 객체 리턴
   async createMovie(createMovieDto: CreateMovieDto) {
-    const { detail, directorId, ...movieRest } = createMovieDto
+    const { genreIds, detail, directorId, ...movieRest } = createMovieDto
+
+    const genres = await this.genreRepository.find({ where: { id: In(genreIds) } })
+    if (genres.length < 1) {
+      throw new NotFoundException('genre not found')
+    }
+    if (genres.length !== genreIds.length) {
+      const genreListIds = genres.map((genre) => genre.id)
+      const joinedNotFoundGenreIds = genreIds.filter((genre) => !genreListIds.includes(genre)).join(', ')
+      throw new NotFoundException(`genre with id ${joinedNotFoundGenreIds} not found`)
+    }
 
     const director = await this.directorRepository.findOneBy({ id: directorId })
     if (!director) {
       throw new NotFoundException('director not found')
     }
 
-    return await this.moviesRepository.save({ ...movieRest, detail: { detail }, director })
+    return await this.moviesRepository.save({ ...movieRest, genres, detail: { detail }, director })
   }
 
-  // 수정 후 수정된 객체 리턴
   async updateMovie(id: number, updateMovieDto: UpdateMovieDto) {
-    const { detail, directorId, ...movieRest } = updateMovieDto
+    const { genreIds, detail, directorId, ...movieRest } = updateMovieDto
 
     const movie = await this.findOneMovie(id)
     if (!movie) {
       throw new NotFoundException('no movie id found')
     }
 
-    let director
+    if (genreIds && genreIds.length > 0) {
+      const genres = await this.genreRepository.find({ where: { id: In(genreIds) } })
+      if (genres.length < 1) {
+        throw new NotFoundException('genre not found')
+      }
+
+      if (genres.length !== genreIds.length) {
+        const genreListIds = genres.map((genre: Genre) => genre.id)
+        const joinedNotFoundGenreIds = genreIds.filter((genre) => !genreListIds.includes(genre)).join(', ')
+        throw new NotFoundException(`${joinedNotFoundGenreIds} genre not found`)
+      }
+
+      movie.genres = genres
+    }
+
     if (directorId) {
-      director = await this.directorRepository.findOneBy({ id: directorId })
+      const director = await this.directorRepository.findOneBy({ id: directorId })
       if (!director) {
         throw new NotFoundException('director not found')
       }
-    }
 
-    const newMovie = {
-      ...(director && { director: director }),
-      ...movieRest,
+      movie.director = director
     }
 
     if (detail) {
-      await this.movieDetailRepository.update(movie.detail.id, { detail })
+      movie.detail.detail = detail
     }
-    await this.moviesRepository.update(id, newMovie)
 
-    return await this.findOneMovie(id)
+    Object.assign(movie, movieRest)
+
+    return await this.moviesRepository.save(movie)
   }
 
   async deleteMovie(id: number) {
