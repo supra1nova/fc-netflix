@@ -1,5 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
 import { BaseTable } from '../../common/entity/base.entity'
+import { Exclude } from 'class-transformer'
 
 export enum Role {
   admin,
@@ -24,5 +25,6 @@ export class User extends BaseTable {
     enum: Role,
     default: Role.user,
   })
+  @Exclude()
   role: Role
 }

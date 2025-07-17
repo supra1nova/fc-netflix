@@ -10,6 +10,7 @@ import { Director } from './director/entity/director.entity'
 import { GenreModule } from './genre/genre.module'
 import { Genre } from './genre/entities/genre.entity'
 import { UserModule } from './user/user.module'
+import { User } from './user/entities/user.entity'
 
 @Module({
   imports: [
@@ -36,7 +37,7 @@ import { UserModule } from './user/user.module'
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         // entity: [/*'src/!**!/!*.entity{.ts,.js}'*/],
-        entities: [Movie, MovieDetail, Director, Genre],
+        entities: [Movie, MovieDetail, Director, Genre, User],
         synchronize: true,
       }),
       inject: [ConfigService],
