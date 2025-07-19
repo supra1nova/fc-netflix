@@ -18,7 +18,9 @@ export class User extends BaseTable {
   })
   email: string
 
+  // @Exclude 의 toPlainOnly 는 plain 으로 변환시 제외 원할때 적용, toClassOnly 는 class로 변환시 제외 원할 때 적용
   @Column()
+  @Exclude({ toPlainOnly: true })
   password: string
 
   @Column({

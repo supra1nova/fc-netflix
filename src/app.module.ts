@@ -9,6 +9,7 @@ import { DirectorModule } from './director/director.module'
 import { Director } from './director/entity/director.entity'
 import { GenreModule } from './genre/genre.module'
 import { Genre } from './genre/entities/genre.entity'
+import { AuthModule } from './auth/auth.module'
 import { UserModule } from './user/user.module'
 import { User } from './user/entities/user.entity'
 
@@ -25,6 +26,7 @@ import { User } from './user/entities/user.entity'
         DB_USERNAME: Joi.string().required(),
         DB_PASSWORD: Joi.string().required(),
         DB_DATABASE: Joi.string().required(),
+        HASH_ROUNDS: Joi.number().required(),
       }),
     }),
     // config 모듈이 모두 인스턴스화 한 뒤 TypeOrmModule 내용을 인젝트 받아야 하기 때문에 async 로 처리
@@ -45,6 +47,7 @@ import { User } from './user/entities/user.entity'
     MovieModule,
     DirectorModule,
     GenreModule,
+    AuthModule,
     UserModule,
   ],
 })
