@@ -17,30 +17,6 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  parseBasicToken(rawToken: string) {
-    // 1. token 을 띄워쓰기 기준으로 토큰 값 추출
-    const basicSplit = rawToken.split(' ')
-
-    if (basicSplit.length < 2) {
-      new BadRequestException('토큰 포맷이 잘못되었습니다.')
-    }
-
-    const [_, token] = basicSplit
-
-    // 2. 추출한 token 을 base64 디코딩에서 이메일과 비밀번호로 나눔 -> 'email:password'
-    const decoded = Buffer.from(token, 'base64').toString('utf-8')
-
-    // 3. 이메일과 비밀번호를 추출 -> [ email, password ]
-    const tokenSplit = decoded.split(':')
-    if (tokenSplit.length < 2) {
-      new BadRequestException('토큰 포맷이 잘못되었습니다.')
-    }
-
-    const [email, password] = tokenSplit
-
-    return { email, password }
-  }
-
   // raw token -> 'Basic $token'
   async signUpUser(rawToken: string) {
     const { email, password } = this.parseBasicToken(rawToken)
@@ -78,15 +54,7 @@ export class AuthService {
   async signInUser(rawToken: string) {
     const { email, password } = this.parseBasicToken(rawToken)
 
-    const user = await this.userRepository.findOneBy({ email })
-    if (!user) {
-      throw new BadRequestException('잘못된 로그인 정보입니다.')
-    }
-
-    const isPasswordMatch = await bcrypt.compare(password, user.password)
-    if (!isPasswordMatch) {
-      throw new BadRequestException('잘못된 로그인 정보입니다.')
-    }
+    const user = await this.authenticate(email, password)
 
     const REFRESH_TOKEN_SECRET = this.configService.get<string>('REFRESH_TOKEN_SECRET')
     const ACCESS_TOKEN_SECRET = this.configService.get<string>('ACCESS_TOKEN_SECRET')
@@ -117,5 +85,43 @@ export class AuthService {
         },
       ),
     }
+  }
+
+  async authenticate(email: string, password: string) {
+    const user = await this.userRepository.findOneBy({ email })
+    if (!user) {
+      throw new BadRequestException('잘못된 로그인 정보입니다.')
+    }
+
+    const isPasswordMatch = await bcrypt.compare(password, user.password)
+    if (!isPasswordMatch) {
+      throw new BadRequestException('잘못된 로그인 정보입니다.')
+    }
+
+    return user
+  }
+
+  parseBasicToken(rawToken: string) {
+    // 1. token 을 띄워쓰기 기준으로 토큰 값 추출
+    const basicSplit = rawToken.split(' ')
+
+    if (basicSplit.length < 2) {
+      new BadRequestException('토큰 포맷이 잘못되었습니다.')
+    }
+
+    const [_, token] = basicSplit
+
+    // 2. 추출한 token 을 base64 디코딩에서 이메일과 비밀번호로 나눔 -> 'email:password'
+    const decoded = Buffer.from(token, 'base64').toString('utf-8')
+
+    // 3. 이메일과 비밀번호를 추출 -> [ email, password ]
+    const tokenSplit = decoded.split(':')
+    if (tokenSplit.length < 2) {
+      new BadRequestException('토큰 포맷이 잘못되었습니다.')
+    }
+
+    const [email, password] = tokenSplit
+
+    return { email, password }
   }
 }
