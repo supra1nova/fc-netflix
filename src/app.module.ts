@@ -27,6 +27,8 @@ import { User } from './user/entities/user.entity'
         DB_PASSWORD: Joi.string().required(),
         DB_DATABASE: Joi.string().required(),
         HASH_ROUNDS: Joi.number().required(),
+        ACCESS_TOKEN_SECRET: Joi.string().required(),
+        REFRESH_TOKEN_SECRET: Joi.string().required(),
       }),
     }),
     // config 모듈이 모두 인스턴스화 한 뒤 TypeOrmModule 내용을 인젝트 받아야 하기 때문에 async 로 처리

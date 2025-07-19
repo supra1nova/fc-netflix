@@ -10,4 +10,9 @@ export class AuthController {
   signUpUser(@Headers('authorization') token: string) {
     return this.authService.signUpUser(token)
   }
+
+  @Post('login')
+  signInUser(@Headers('authorization') token: string) {
+    return this.authService.signInUser(token)
+  }
 }

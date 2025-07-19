@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import * as bcrypt from 'bcrypt'
 import { ConfigService } from '@nestjs/config'
 import { plainToInstance } from 'class-transformer'
+import { JwtService } from '@nestjs/jwt'
 
 @Injectable()
 export class AuthService {
@@ -13,6 +14,7 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
+    private readonly jwtService: JwtService,
   ) {}
 
   parseBasicToken(rawToken: string) {
@@ -71,5 +73,49 @@ export class AuthService {
     }
 
     return this.userRepository.findOneBy({ email })
+  }
+
+  async signInUser(rawToken: string) {
+    const { email, password } = this.parseBasicToken(rawToken)
+
+    const user = await this.userRepository.findOneBy({ email })
+    if (!user) {
+      throw new BadRequestException('잘못된 로그인 정보입니다.')
+    }
+
+    const isPasswordMatch = await bcrypt.compare(password, user.password)
+    if (!isPasswordMatch) {
+      throw new BadRequestException('잘못된 로그인 정보입니다.')
+    }
+
+    const REFRESH_TOKEN_SECRET = this.configService.get<string>('REFRESH_TOKEN_SECRET')
+    const ACCESS_TOKEN_SECRET = this.configService.get<string>('ACCESS_TOKEN_SECRET')
+
+    return {
+      // sign 의 경우 블로킹 가능 -> 이벤트 루프가 멈출수 있으므로 비동기처리
+      refreshToken: await this.jwtService.signAsync(
+        {
+          sub: user.id,
+          role: user.role,
+          type: 'refresh',
+        },
+        {
+          secret: REFRESH_TOKEN_SECRET,
+          expiresIn: '24h',
+        },
+      ),
+      accessToken: await this.jwtService.signAsync(
+        {
+          sub: user.id,
+          role: user.role,
+          type: 'access',
+        },
+        {
+          secret: ACCESS_TOKEN_SECRET,
+          // access token 의 경우 짧게 가져가서 보안적으로 안전하게 처리
+          expiresIn: 60 * 5,
+        },
+      ),
+    }
   }
 }
