@@ -5,7 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { User } from './entities/user.entity'
 import { DataSource, Repository } from 'typeorm'
 import { isNotEmpty } from 'class-validator'
-import { plainToInstance } from 'class-transformer'
+import { instanceToPlain } from 'class-transformer'
 
 @Injectable()
 export class UserService {
@@ -28,12 +28,7 @@ export class UserService {
       return [users, count]
     }
 
-    const usersWithoutPassword = users.map((user) => {
-      const { password, ...userRestFields } = user
-      return plainToInstance(User, userRestFields)
-    })
-
-    return [usersWithoutPassword, count]
+    return [instanceToPlain(users), count]
   }
 
   async findOneUser(id: number) {
@@ -57,10 +52,7 @@ export class UserService {
 
       await qr.commitTransaction()
 
-      const user = await this.findOneUser(userId)
-      const { password, ...userRestFields } = user
-
-      return plainToInstance(User, userRestFields)
+      return await this.findOneUser(userId)
     } catch (e) {
       await qr.rollbackTransaction()
 
@@ -82,10 +74,7 @@ export class UserService {
 
       await qr.commitTransaction()
 
-      const resultUser = await this.findOneUser(id)
-      const { password, ...userRestFields } = resultUser
-
-      return plainToInstance(User, userRestFields)
+      return await this.findOneUser(id)
     } catch (e) {
       await qr.rollbackTransaction()
 
