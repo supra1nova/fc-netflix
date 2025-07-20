@@ -19,13 +19,25 @@ export class AuthController {
     return this.authService.signInUser(token)
   }
 
+  @Post('access')
+  async rotateAccessToken(@Headers('authorization') token: string) {
+    const { sub, role } = await this.authService.parseBearerToken(token, false)
+
+    return {
+      accessToken: await this.authService.issueToken({ sub, role }, false),
+    }
+  }
+
   // @UseGuards(AuthGuard('local'))
   @UseGuards(LocalAuthGuard)
   @Post('login/passport')
   async signInUserPassport(@Request() req: ExpressRequest) {
+    const user = req.user as User
+    const info = { sub: user.id, role: user.role }
+
     return {
-      refreshToken: await this.authService.issueToken(req.user as User),
-      accessToken: await this.authService.issueToken(req.user as User, false),
+      refreshToken: await this.authService.issueToken(info),
+      accessToken: await this.authService.issueToken(info, false),
     }
   }
 
