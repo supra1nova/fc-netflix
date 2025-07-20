@@ -101,6 +101,25 @@ export class AuthService {
     return user
   }
 
+  async issueToken(user: User, isRefreshToken: boolean = true) {
+    const { id, role, ..._ } = user
+    const type = isRefreshToken ? 'refresh' : 'access'
+    const secret = this.configService.get<string>(isRefreshToken ? 'REFRESH_TOKEN_SECRET' : 'ACCESS_TOKEN_SECRET')
+    const expiresIn = isRefreshToken ? '24h' : 60 * 5
+
+    return await this.jwtService.signAsync(
+      {
+        sub: id,
+        role,
+        type,
+      },
+      {
+        secret,
+        expiresIn,
+      },
+    )
+  }
+
   parseBasicToken(rawToken: string) {
     // 1. token 을 띄워쓰기 기준으로 토큰 값 추출
     const basicSplit = rawToken.split(' ')

@@ -40,8 +40,6 @@ export class LocalStrategy extends PassportStrategy(Strategy, 'custom-local-stra
    *
    */
   async validate(email: string, password: string) {
-    console.log(email)
-    console.log(password)
     const user = await this.authService.authenticate(email, password)
     if (!user) {
       new BadRequestException('Authentication failed')
