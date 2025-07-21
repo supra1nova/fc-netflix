@@ -1,11 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common'
 import { DataSource, Repository } from 'typeorm'
-import { User } from '../user/entities/user.entity'
+import { Role, User } from '../user/entities/user.entity'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as bcrypt from 'bcrypt'
 import { ConfigService } from '@nestjs/config'
 import { plainToInstance } from 'class-transformer'
 import { JwtService } from '@nestjs/jwt'
+import { ConstVariable } from '../common/const/const-variable'
 
 @Injectable()
 export class AuthService {
@@ -29,7 +30,7 @@ export class AuthService {
     // bcrypt.hash(대상비밀번호, 솔트 또는 라운드)
     // 라운드는 bcrypt가 해싱을 수행하는 횟수
     // 라운드의 경우 10이 보편적
-    const hash = await bcrypt.hash(password, this.configService.get<number>('HASH_ROUNDS') as number)
+    const hash = await bcrypt.hash(password, this.configService.get<number>(ConstVariable.HASH_ROUNDS) as number)
     const userInstance = plainToInstance(User, { email, password: hash })
 
     const qr = this.dataSource.createQueryRunner()
@@ -56,8 +57,8 @@ export class AuthService {
 
     const user = await this.authenticate(email, password)
 
-    const REFRESH_TOKEN_SECRET = this.configService.get<string>('REFRESH_TOKEN_SECRET')
-    const ACCESS_TOKEN_SECRET = this.configService.get<string>('ACCESS_TOKEN_SECRET')
+    const REFRESH_TOKEN_SECRET = this.configService.get<string>(ConstVariable.REFRESH_TOKEN_SECRET)
+    const ACCESS_TOKEN_SECRET = this.configService.get<string>(ConstVariable.ACCESS_TOKEN_SECRET)
 
     return {
       // sign 의 경우 블로킹 가능 -> 이벤트 루프가 멈출수 있으므로 비동기처리
@@ -101,15 +102,17 @@ export class AuthService {
     return user
   }
 
-  async issueToken(user: User, isRefreshToken: boolean = true) {
-    const { id, role, ..._ } = user
+  async issueToken(info: { sub: number; role: Role }, isRefreshToken: boolean = true) {
+    const { sub, role, ..._ } = info
     const type = isRefreshToken ? 'refresh' : 'access'
-    const secret = this.configService.get<string>(isRefreshToken ? 'REFRESH_TOKEN_SECRET' : 'ACCESS_TOKEN_SECRET')
+    const secret = this.configService.get<string>(
+      isRefreshToken ? ConstVariable.REFRESH_TOKEN_SECRET : ConstVariable.ACCESS_TOKEN_SECRET,
+    )
     const expiresIn = isRefreshToken ? '24h' : 60 * 5
 
     return await this.jwtService.signAsync(
       {
-        sub: id,
+        sub,
         role,
         type,
       },
@@ -128,7 +131,11 @@ export class AuthService {
       new BadRequestException('토큰 포맷이 잘못되었습니다.')
     }
 
-    const [_, token] = basicSplit
+    const [basic, token] = basicSplit
+
+    if (basic.toLowerCase() !== 'basic') {
+      new BadRequestException('토큰 포맷이 잘못되었습니다.')
+    }
 
     // 2. 추출한 token 을 base64 디코딩에서 이메일과 비밀번호로 나눔 -> 'email:password'
     const decoded = Buffer.from(token, 'base64').toString('utf-8')
@@ -142,5 +149,43 @@ export class AuthService {
     const [email, password] = tokenSplit
 
     return { email, password }
+  }
+
+  async parseBearerToken(rawToken: string, isRefreshToken: boolean = true) {
+    const basicSplit = rawToken.split(' ')
+
+    if (basicSplit.length < 2) {
+      new BadRequestException('토큰 포맷이 잘못되었습니다.')
+    }
+
+    const [bearer, token] = basicSplit
+    if (bearer.toLowerCase() !== 'bearer') {
+      throw new BadRequestException('토큰 포맷이 잘못되었습니다.')
+    }
+
+    const secret = this.configService.get<string>(
+      isRefreshToken ? ConstVariable.REFRESH_TOKEN_SECRET : ConstVariable.ACCESS_TOKEN_SECRET,
+    )
+
+    let payload
+    // decode 는 검증을 하지 않고 Payload 만 가져옴
+    // verify 또는 verifyAsync 는 검증 후 payload를 가져옴
+    // 만약 검증에 실패하면 에러를 던지는데, 위에어 이미 포멧과 관련된 에러를 다 잡았으니, 여기서 Refresh 토큰 만료 예외 처리;
+    try {
+      payload = await this.jwtService.verifyAsync(token, {
+        secret: secret,
+      })
+    } catch (e) {
+      throw new UnauthorizedException('토큰이 만료되었습니다.')
+    }
+
+    const isTokenTypeMatch = isRefreshToken ? payload.type === 'refresh' : payload.type === 'access'
+    if (!isTokenTypeMatch) {
+      const requireTokenType = isRefreshToken ? 'refresh'.toUpperCase() : 'access'.toUpperCase()
+
+      throw new BadRequestException(`올바른 토큰 타입이 아닙니다. ${requireTokenType} 토큰을 입력해 주세요.`)
+    }
+
+    return payload
   }
 }
