@@ -2,6 +2,7 @@ import { AuthGuard, PassportStrategy } from '@nestjs/passport'
 import { ExtractJwt, Strategy } from 'passport-jwt'
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { ConstVariable } from '../../common/const/const-variable'
 
 export class JwtAuthGuard extends AuthGuard('jwt') {}
 
@@ -11,7 +12,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), // Request 에서 jwt 가져오는 여부
       ignoreExpiration: false, // jwt 만료기간 무시 여부
-      secretOrKey: configService.get<string>('ACCESS_TOKEN_SECRET') as string, // secret 키
+      secretOrKey: configService.get<string>(ConstVariable.ACCESS_TOKEN_SECRET) as string, // secret 키
     })
   }
 

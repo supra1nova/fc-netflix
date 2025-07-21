@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt'
 import { ConfigService } from '@nestjs/config'
 import { plainToInstance } from 'class-transformer'
 import { JwtService } from '@nestjs/jwt'
+import { ConstVariable } from '../common/const/const-variable'
 
 @Injectable()
 export class AuthService {
@@ -29,7 +30,7 @@ export class AuthService {
     // bcrypt.hash(대상비밀번호, 솔트 또는 라운드)
     // 라운드는 bcrypt가 해싱을 수행하는 횟수
     // 라운드의 경우 10이 보편적
-    const hash = await bcrypt.hash(password, this.configService.get<number>('HASH_ROUNDS') as number)
+    const hash = await bcrypt.hash(password, this.configService.get<number>(ConstVariable.HASH_ROUNDS) as number)
     const userInstance = plainToInstance(User, { email, password: hash })
 
     const qr = this.dataSource.createQueryRunner()
@@ -56,8 +57,8 @@ export class AuthService {
 
     const user = await this.authenticate(email, password)
 
-    const REFRESH_TOKEN_SECRET = this.configService.get<string>('REFRESH_TOKEN_SECRET')
-    const ACCESS_TOKEN_SECRET = this.configService.get<string>('ACCESS_TOKEN_SECRET')
+    const REFRESH_TOKEN_SECRET = this.configService.get<string>(ConstVariable.REFRESH_TOKEN_SECRET)
+    const ACCESS_TOKEN_SECRET = this.configService.get<string>(ConstVariable.ACCESS_TOKEN_SECRET)
 
     return {
       // sign 의 경우 블로킹 가능 -> 이벤트 루프가 멈출수 있으므로 비동기처리
@@ -104,7 +105,9 @@ export class AuthService {
   async issueToken(info: { sub: number; role: Role }, isRefreshToken: boolean = true) {
     const { sub, role, ..._ } = info
     const type = isRefreshToken ? 'refresh' : 'access'
-    const secret = this.configService.get<string>(isRefreshToken ? 'REFRESH_TOKEN_SECRET' : 'ACCESS_TOKEN_SECRET')
+    const secret = this.configService.get<string>(
+      isRefreshToken ? ConstVariable.REFRESH_TOKEN_SECRET : ConstVariable.ACCESS_TOKEN_SECRET,
+    )
     const expiresIn = isRefreshToken ? '24h' : 60 * 5
 
     return await this.jwtService.signAsync(
@@ -160,7 +163,9 @@ export class AuthService {
       throw new BadRequestException('토큰 포맷이 잘못되었습니다.')
     }
 
-    const secret = this.configService.get<string>(isRefreshToken ? 'REFRESH_TOKEN_SECRET' : 'ACCESS_TOKEN_SECRET')
+    const secret = this.configService.get<string>(
+      isRefreshToken ? ConstVariable.REFRESH_TOKEN_SECRET : ConstVariable.ACCESS_TOKEN_SECRET,
+    )
 
     let payload
     // decode 는 검증을 하지 않고 Payload 만 가져옴

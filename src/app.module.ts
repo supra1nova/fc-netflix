@@ -12,6 +12,7 @@ import { Genre } from './genre/entities/genre.entity'
 import { AuthModule } from './auth/auth.module'
 import { UserModule } from './user/user.module'
 import { User } from './user/entities/user.entity'
+import { ConstVariable } from './common/const/const-variable'
 
 @Module({
   imports: [
@@ -20,7 +21,9 @@ import { User } from './user/entities/user.entity'
       isGlobal: true, // 어떤 모듈에서든 환경 변수 사용 요부
       validationSchema: Joi.object({
         ENV: Joi.string().required(),
-        DB_TYPE: Joi.string().valid('postgres', 'mariadb', 'mysql', 'oracle').required(),
+        DB_TYPE: Joi.string()
+          .valid(ConstVariable.POSTGRES, ConstVariable.MARIADB, ConstVariable.MYSQL, ConstVariable.ORACLE)
+          .required(),
         DB_HOST: Joi.string().required(),
         DB_PORT: Joi.number().required(),
         DB_USERNAME: Joi.string().required(),
@@ -34,12 +37,12 @@ import { User } from './user/entities/user.entity'
     // config 모듈이 모두 인스턴스화 한 뒤 TypeOrmModule 내용을 인젝트 받아야 하기 때문에 async 로 처리
     TypeOrmModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
-        type: configService.get<string>('DB_TYPE') as 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'),
+        type: configService.get<string>(ConstVariable.DB_TYPE) as ConstVariable.POSTGRES,
+        host: configService.get<string>(ConstVariable.DB_HOST),
+        port: configService.get<number>(ConstVariable.DB_PORT),
+        username: configService.get<string>(ConstVariable.DB_USERNAME),
+        password: configService.get<string>(ConstVariable.DB_PASSWORD),
+        database: configService.get<string>(ConstVariable.DB_DATABASE),
         // entity: [/*'src/!**!/!*.entity{.ts,.js}'*/],
         entities: [Movie, MovieDetail, Director, Genre, User],
         synchronize: true,
