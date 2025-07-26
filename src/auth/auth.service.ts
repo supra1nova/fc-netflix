@@ -102,8 +102,8 @@ export class AuthService {
     return user
   }
 
-  async issueToken(info: { sub: number; role: Role }, isRefreshToken: boolean = true) {
-    const { sub, role, ..._ } = info
+  async issueToken(user: { sub: number; role: Role }, isRefreshToken: boolean = true) {
+    const { sub, role, ..._ } = user
     const type = isRefreshToken ? 'refresh' : 'access'
     const secret = this.configService.get<string>(
       isRefreshToken ? ConstVariable.REFRESH_TOKEN_SECRET : ConstVariable.ACCESS_TOKEN_SECRET,
