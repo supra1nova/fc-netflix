@@ -4,17 +4,20 @@ import { Request as ExpressRequest } from 'express' // ✅ Request가 충돌되�
 import { LocalAuthGuard } from './strategy/local.strategy'
 import { Role } from '../user/entities/user.entity'
 import { JwtAuthGuard } from './strategy/jwt.strategy'
+import { Public } from './decorator/public.decorator'
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post()
+  @Public()
+  @Post('sign-up')
   signUpUser(@Headers('authorization') token: string) {
     return this.authService.signUpUser(token)
   }
 
-  @Post('login')
+  @Public()
+  @Post('sign-in')
   signInUser(@Headers('authorization') token: string) {
     return this.authService.signInUser(token)
   }
