@@ -19,7 +19,15 @@ export class BearerTokenMiddleware implements NestMiddleware {
       return
     }
 
-    req.user = await this.parseBearerToken(authHeader)
+    try {
+      req.user = await this.parseBearerToken(authHeader)
+    } catch (e) {
+      if (e.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('토큰이 만료되었습니다.')
+      }
+      console.log('BearerTokenMiddleware#use : token expired')
+    }
+
     next()
   }
 
@@ -37,17 +45,10 @@ export class BearerTokenMiddleware implements NestMiddleware {
       payloadTokenType === 'refresh' ? ConstVariable.REFRESH_TOKEN_SECRET : ConstVariable.ACCESS_TOKEN_SECRET
     const secret = this.configService.get<string>(secretType)
 
-    let payload
     // decode 는 검증을 하지 않고 Payload 만 가져옴
     // verify 또는 verifyAsync 는 검증 후 payload를 가져옴
     // 만약 검증에 실패하면 에러를 던지는데, 위에어 이미 포멧과 관련된 에러를 다 잡았으니, 여기서 Refresh 토큰 만료 예외 처리;
-    try {
-      payload = await this.jwtService.verifyAsync(token, { secret: secret })
-    } catch (e) {
-      throw new UnauthorizedException('토큰이 만료되었습니다.')
-    }
-
-    return payload
+    return await this.jwtService.verifyAsync(token, { secret: secret })
   }
 
   private validateBearerToken(rawToken: string) {

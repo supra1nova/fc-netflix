@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common'
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { DataSource, Repository } from 'typeorm'
 import { Role, User } from '../user/entities/user.entity'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -149,43 +149,5 @@ export class AuthService {
     const [email, password] = tokenSplit
 
     return { email, password }
-  }
-
-  async parseBearerToken(rawToken: string, isRefreshToken: boolean = true) {
-    const basicSplit = rawToken.split(' ')
-
-    if (basicSplit.length < 2) {
-      new BadRequestException('토큰 포맷이 잘못되었습니다.')
-    }
-
-    const [bearer, token] = basicSplit
-    if (bearer.toLowerCase() !== 'bearer') {
-      throw new BadRequestException('토큰 포맷이 잘못되었습니다.')
-    }
-
-    const secret = this.configService.get<string>(
-      isRefreshToken ? ConstVariable.REFRESH_TOKEN_SECRET : ConstVariable.ACCESS_TOKEN_SECRET,
-    )
-
-    let payload
-    // decode 는 검증을 하지 않고 Payload 만 가져옴
-    // verify 또는 verifyAsync 는 검증 후 payload를 가져옴
-    // 만약 검증에 실패하면 에러를 던지는데, 위에어 이미 포멧과 관련된 에러를 다 잡았으니, 여기서 Refresh 토큰 만료 예외 처리;
-    try {
-      payload = await this.jwtService.verifyAsync(token, {
-        secret: secret,
-      })
-    } catch (e) {
-      throw new UnauthorizedException('토큰이 만료되었습니다.')
-    }
-
-    const isTokenTypeMatch = isRefreshToken ? payload.type === 'refresh' : payload.type === 'access'
-    if (!isTokenTypeMatch) {
-      const requireTokenType = isRefreshToken ? 'refresh'.toUpperCase() : 'access'.toUpperCase()
-
-      throw new BadRequestException(`올바른 토큰 타입이 아닙니다. ${requireTokenType} 토큰을 입력해 주세요.`)
-    }
-
-    return payload
   }
 }
