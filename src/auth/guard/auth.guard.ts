@@ -9,7 +9,7 @@ export class AuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     // 만약 public decoration 이 되어있다면 모든 로직을 bypass 처리
     // Reflector 를 이용해 데코레이터가 있는지 확인
-    const isPublic = this.reflector.get(Public, context.getHandler())
+    const isPublic = this.reflector.get<boolean>(Public, context.getHandler())
 
     // @Public() 데코레이터가 적용된 경우 isPublic은 {} 가 존재, 아닌경우 undefined 가 존재
     if (isPublic) {
@@ -20,6 +20,9 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest()
 
     const user = request.user
+    /*
     return !(!user || !user.type || user.type !== 'access')
+    */
+    return user?.type === 'access'
   }
 }

@@ -1,5 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common'
-import { Role } from '../../user/entities/user.entity'
+import { Role, User } from '../../user/entities/user.entity'
 import { Reflector } from '@nestjs/core'
 import { RBAC } from '../decorator/rbac.decorator'
 
@@ -18,12 +18,14 @@ export class RBACGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest()
 
-    const user = request.user
-
+    const user = request.user as User
+    /*
     if (!user) {
       return false
     }
 
     return user.role <= role
+    */
+    return typeof user?.role === 'number' && user.role <= role
   }
 }

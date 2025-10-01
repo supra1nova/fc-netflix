@@ -23,9 +23,12 @@ export class BearerTokenMiddleware implements NestMiddleware {
       req.user = await this.parseBearerToken(authHeader)
     } catch (e) {
       if (e.name === 'TokenExpiredError') {
+        console.log('BearerTokenMiddleware#use : token expired')
         throw new UnauthorizedException('토큰이 만료되었습니다.')
+      } else {
+        console.log('BearerTokenMiddleware#use : invalid token')
+        throw new UnauthorizedException('유효하지 않은 토큰입니다.')
       }
-      console.log('BearerTokenMiddleware#use : token expired')
     }
 
     next()
