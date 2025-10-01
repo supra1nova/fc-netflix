@@ -13,12 +13,6 @@ export class MovieService {
   constructor(
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
-    @InjectRepository(MovieDetail)
-    private readonly movieDetailRepository: Repository<MovieDetail>,
-    @InjectRepository(Director)
-    private readonly directorRepository: Repository<Director>,
-    @InjectRepository(Genre)
-    private readonly genreRepository: Repository<Genre>,
     // DataSource 는 TypeOrm 에서 가져오므로 그냥 불러오기만 하면 됨
     private readonly datasource: DataSource,
   ) {}

@@ -16,6 +16,7 @@ import { ConstVariable } from './common/const/const-variable'
 import { BearerTokenMiddleware } from './auth/middleware/bearer-token.middleware'
 import { APP_GUARD } from '@nestjs/core'
 import { AuthGuard } from './auth/guard/auth.guard'
+import { RBACGuard } from './auth/guard/rbac.gaurd'
 
 @Module({
   imports: [
@@ -63,6 +64,11 @@ import { AuthGuard } from './auth/guard/auth.guard'
       provide: APP_GUARD,
       useClass: AuthGuard,
     },
+    // RBACGuard는 AuthGuard 다음 작동해야하므로 바로 밑에 배치, 순서 중요!!
+    {
+      provide: APP_GUARD,
+      useClass: RBACGuard,
+    },
   ],
 })
 export class AppModule implements NestModule {
@@ -77,6 +83,10 @@ export class AppModule implements NestModule {
         {
           path: 'auth/sign-in',
           method: RequestMethod.POST,
+        },
+        {
+          path: 'movie',
+          method: RequestMethod.GET,
         },
       )
       .forRoutes('*')
