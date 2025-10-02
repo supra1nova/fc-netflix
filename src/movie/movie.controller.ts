@@ -9,7 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
-  Query,
+  Query, Req,
   UseInterceptors,
 } from '@nestjs/common'
 import { MovieService } from './movie.service'
@@ -19,7 +19,7 @@ import { Public } from '../auth/decorator/public.decorator'
 import { RBAC } from '../auth/decorator/rbac.decorator'
 import { Role } from '../user/entities/user.entity'
 import { GetMoviesDto } from './dto/get-movies.dto'
-import { CacheInterceptor } from '../common/interceptor/cache.interceptor'
+import { TransactionInterceptor } from '../common/interceptor/transaction.interceptor'
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -29,7 +29,6 @@ export class MovieController {
 
   @Get()
   @Public()
-  @UseInterceptors(CacheInterceptor)
   getListMovie(@Query() dto: GetMoviesDto) {
     return this.movieService.findListMovie(dto)
   }
@@ -53,8 +52,9 @@ export class MovieController {
 
   @Post()
   @RBAC(Role.admin)
-  postMovie(@Body() createMovieDto: CreateMovieDto) {
-    return this.movieService.createMovie(createMovieDto)
+  @UseInterceptors(TransactionInterceptor)
+  postMovie(@Body() createMovieDto: CreateMovieDto, @Req() req) {
+    return this.movieService.createMovie(createMovieDto, req.queryRunner)
   }
 
   @Patch(':id')
