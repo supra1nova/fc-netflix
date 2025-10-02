@@ -7,17 +7,27 @@ import { DataSource, In, Repository } from 'typeorm'
 import { MovieDetail } from './entity/movie-detail.entity'
 import { Director } from '../director/entity/director.entity'
 import { Genre } from '../genre/entities/genre.entity'
+import { GetMoviesDto } from './dto/get-movies.dto'
+import { CommonService } from '../common/module/common.service'
 
 @Injectable()
 export class MovieService {
   constructor(
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
+    @InjectRepository(Genre)
+    private readonly genreRepository: Repository<Genre>,
+    @InjectRepository(Director)
+    private readonly directorRepository: Repository<Director>,
     // DataSource 는 TypeOrm 에서 가져오므로 그냥 불러오기만 하면 됨
     private readonly datasource: DataSource,
-  ) {}
+    private readonly commonService: CommonService,
+  ) {
+  }
 
-  findListMovie(title?: string) {
+  async findListMovie(dto: GetMoviesDto) {
+    const { title } = dto
+
     let qb = this.movieRepository
       .createQueryBuilder('movie')
       .leftJoinAndSelect('movie.director', 'director')
@@ -27,7 +37,21 @@ export class MovieService {
       qb = qb.andWhere('movie.title LIKE :title', { title: `%${title}%` })
     }
 
-    return qb.orderBy('movie.createdAt', 'DESC').getManyAndCount()
+    // 당연하게도 static 으로 추출해 사용할 수 있으나, 굳이 page형과 cursor형 pagination 을 module 로 사용하기 위해 적용
+    // CommonUtil.ApplyPagePaginationParamsToQb(qb, dto)
+    // this.commonService.applyPagePaginationParamsToQb(qb, dto)
+
+    this.commonService.applyCursorPaginationParamsToQb(qb, dto)
+
+    const [data, count] = await qb.getManyAndCount()
+
+    const nextCursor = this.commonService.generateNextCursor(data, dto.order)
+
+    return {
+      data,
+      nextCursor,
+      count,
+    }
   }
 
   findOneMovie(id: number) {
@@ -108,6 +132,72 @@ export class MovieService {
       // 커넥션 풀에 커넥션을 반환하지 않으면 물고 있을 수 있으므로 꼭 반환 필수
       await qr.release()
     }
+  }
+
+  async createDummyMovies(round: number) {
+    const movieCount = await this.movieRepository.count()
+    if (movieCount > 10) {
+      return `create dummy movies not processed`
+    }
+
+    const genres = await this.genreRepository.find()
+    const genresCount = genres.length - 1
+    const directorsCount = await this.directorRepository.count() - 1
+
+    const randomIdxArr = [] as number[]
+    for (let num = 0; num < round; num++) {
+      const randomNumber = Math.random()
+      randomIdxArr.push(randomNumber)
+    }
+
+    const qr = this.datasource.createQueryRunner()
+    await qr.connect()
+    await qr.startTransaction()
+
+    try {
+      for (let i = 0; i < round; i++) {
+        const genreId = genres[Math.round(randomIdxArr[i] * genresCount)].id
+        const directorId = Math.round(randomIdxArr[i] * directorsCount) + 1
+
+        const createMovieDto: CreateMovieDto = new CreateMovieDto()
+        createMovieDto.genreIds = [genreId]
+        createMovieDto.title = `test${genreId} 제목${i}`
+        createMovieDto.detail = `test${genreId} 내용입니다.`
+        createMovieDto.directorId = directorId
+
+        const { genreIds, detail, ...movieRest } = createMovieDto
+
+        const detailInsertResult = await qr.manager
+          .createQueryBuilder()
+          .insert()
+          .into(MovieDetail)
+          .values({ detail: createMovieDto.detail })
+          .execute()
+        const detailId = detailInsertResult.identifiers[0].id
+
+        const movieInsertResult = await qr.manager
+          .createQueryBuilder()
+          .insert()
+          .into(Movie)
+          .values({ detail: { id: detailId }, director: { id: directorId }, ...movieRest })
+          .execute()
+        const movieId = movieInsertResult.identifiers[0].id
+
+        await qr.manager.createQueryBuilder().relation(Movie, 'genres').of(movieId).add(genreIds)
+      }
+
+      await qr.commitTransaction()
+
+    } catch (e) {
+      await qr.rollbackTransaction()
+
+      throw e
+    } finally {
+      await qr.release()
+      console.log('error occurred during create dummy movies processing')
+    }
+
+    return `create dummy movie processed successfully`
   }
 
   async updateMovie(id: number, updateMovieDto: UpdateMovieDto) {
