@@ -1,5 +1,5 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common'
-import { catchError, finalize, from, Observable } from 'rxjs'
+import { catchError, finalize, from, Observable, tap } from 'rxjs'
 import { DataSource } from 'typeorm'
 
 @Injectable()
@@ -20,6 +20,10 @@ export class TransactionInterceptor implements NestInterceptor {
     req.queryRunner = qr
 
     return next.handle().pipe(
+      tap(() => {
+        // 정상적으로 핸들러 실행되었음을 표시
+        req.isTransactionSuccess = true
+      }),
       catchError((err) => {
         return from(
           (async () => {
@@ -31,13 +35,14 @@ export class TransactionInterceptor implements NestInterceptor {
       finalize(async () => {
         if (!qr.isReleased) {
           try {
-            await qr.commitTransaction()
+            if (req.isTransactionSuccess) {
+              await qr.commitTransaction()
+            }
           } finally {
             await qr.release()
           }
         }
       }),
     )
-
   }
 }
