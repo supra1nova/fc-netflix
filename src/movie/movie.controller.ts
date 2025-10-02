@@ -65,4 +65,10 @@ export class MovieController {
   deleteMovie(@Param('id', new ParseIntPipe()) id: number) {
     return this.movieService.deleteMovie(+id)
   }
+
+  @Public()
+  @Post('bulk-upload/:round')
+  postMovies(@Param('round', new ParseIntPipe()) round: number) {
+    return this.movieService.createDummyMovies(round)
+  }
 }

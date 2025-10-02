@@ -13,9 +13,14 @@ export class MovieService {
   constructor(
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
+    @InjectRepository(Genre)
+    private readonly genreRepository: Repository<Genre>,
+    @InjectRepository(Director)
+    private readonly directorRepository: Repository<Director>,
     // DataSource 는 TypeOrm 에서 가져오므로 그냥 불러오기만 하면 됨
     private readonly datasource: DataSource,
-  ) {}
+  ) {
+  }
 
   findListMovie(title?: string) {
     let qb = this.movieRepository
@@ -108,6 +113,72 @@ export class MovieService {
       // 커넥션 풀에 커넥션을 반환하지 않으면 물고 있을 수 있으므로 꼭 반환 필수
       await qr.release()
     }
+  }
+
+  async createDummyMovies(round: number) {
+    const movieCount = await this.movieRepository.count()
+    if (movieCount > 10) {
+      return `create dummy movies not processed`
+    }
+
+    const genres = await this.genreRepository.find()
+    const genresCount = genres.length - 1
+    const directorsCount = await this.directorRepository.count() - 1
+
+    const randomIdxArr = [] as number[]
+    for (let num = 0; num < round; num++) {
+      const randomNumber = Math.random()
+      randomIdxArr.push(randomNumber)
+    }
+
+    const qr = this.datasource.createQueryRunner()
+    await qr.connect()
+    await qr.startTransaction()
+
+    try {
+      for (let i = 0; i < round; i++) {
+        const genreId = genres[Math.round(randomIdxArr[i] * genresCount)].id
+        const directorId = Math.round(randomIdxArr[i] * directorsCount) + 1
+
+        const createMovieDto: CreateMovieDto = new CreateMovieDto()
+        createMovieDto.genreIds = [genreId]
+        createMovieDto.title = `test${genreId} 제목${i}`
+        createMovieDto.detail = `test${genreId} 내용입니다.`
+        createMovieDto.directorId = directorId
+
+        const { genreIds, detail, ...movieRest } = createMovieDto
+
+        const detailInsertResult = await qr.manager
+          .createQueryBuilder()
+          .insert()
+          .into(MovieDetail)
+          .values({ detail: createMovieDto.detail })
+          .execute()
+        const detailId = detailInsertResult.identifiers[0].id
+
+        const movieInsertResult = await qr.manager
+          .createQueryBuilder()
+          .insert()
+          .into(Movie)
+          .values({ detail: { id: detailId }, director: { id: directorId }, ...movieRest })
+          .execute()
+        const movieId = movieInsertResult.identifiers[0].id
+
+        await qr.manager.createQueryBuilder().relation(Movie, 'genres').of(movieId).add(genreIds)
+      }
+
+      await qr.commitTransaction()
+
+    } catch (e) {
+      await qr.rollbackTransaction()
+
+      throw e
+    } finally {
+      await qr.release()
+      console.log('error occurred during create dummy movies processing')
+    }
+
+    return `create dummy movie processed successfully`
   }
 
   async updateMovie(id: number, updateMovieDto: UpdateMovieDto) {
