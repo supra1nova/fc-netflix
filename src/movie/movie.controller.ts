@@ -15,11 +15,11 @@ import {
 import { MovieService } from './movie.service'
 import { CreateMovieDto } from './dto/create-movie.dto'
 import { UpdateMovieDto } from './dto/update-movie.dto'
-import { MovieTitleValidationPipe } from './pipe/movie-title-validation.pipe'
 import { Public } from '../auth/decorator/public.decorator'
 import { RBAC } from '../auth/decorator/rbac.decorator'
 import { Role } from '../user/entities/user.entity'
 import { GetMoviesDto } from './dto/get-movies.dto'
+import { CacheInterceptor } from '../common/interceptor/cache.interceptor'
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -29,6 +29,7 @@ export class MovieController {
 
   @Get()
   @Public()
+  @UseInterceptors(CacheInterceptor)
   getListMovie(@Query() dto: GetMoviesDto) {
     return this.movieService.findListMovie(dto)
   }
