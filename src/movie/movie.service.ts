@@ -7,6 +7,8 @@ import { DataSource, In, Repository } from 'typeorm'
 import { MovieDetail } from './entity/movie-detail.entity'
 import { Director } from '../director/entity/director.entity'
 import { Genre } from '../genre/entities/genre.entity'
+import { GetMoviesDto } from './dto/get-movies.dto'
+import { CommonService } from '../common/module/common.service'
 
 @Injectable()
 export class MovieService {
@@ -19,10 +21,13 @@ export class MovieService {
     private readonly directorRepository: Repository<Director>,
     // DataSource 는 TypeOrm 에서 가져오므로 그냥 불러오기만 하면 됨
     private readonly datasource: DataSource,
+    private readonly commonService: CommonService,
   ) {
   }
 
-  findListMovie(title?: string) {
+  findListMovie(dto: GetMoviesDto) {
+    const { title } = dto
+
     let qb = this.movieRepository
       .createQueryBuilder('movie')
       .leftJoinAndSelect('movie.director', 'director')
@@ -32,7 +37,11 @@ export class MovieService {
       qb = qb.andWhere('movie.title LIKE :title', { title: `%${title}%` })
     }
 
-    return qb.orderBy('movie.createdAt', 'DESC').getManyAndCount()
+    // CommonUtil.ApplyPagePaginationParamsToQb(qb, dto)
+    // 당연하게도 static 으로 추출해 사용할 수 있으나, 굳이 page형과 cursor형 pagination 을 module 로 사용하기 위해 적용
+    this.commonService.applyPagePaginationParamsToQb(qb, dto)
+
+    return qb.getManyAndCount()
   }
 
   findOneMovie(id: number) {
