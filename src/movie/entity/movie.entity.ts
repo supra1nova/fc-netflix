@@ -17,6 +17,11 @@ export class Movie extends BaseTable {
   })
   title: string
 
+  @Column({
+    default: 0,
+  })
+  likeCount: number
+
   @ManyToMany(() => Genre, (genre) => genre.movies, { cascade: true })
   @JoinTable() // 🎯 ManyToMany 인 경우 반드시 소유자 쪽에만 작성
   genres: Genre[]

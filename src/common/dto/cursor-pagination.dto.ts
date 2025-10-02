@@ -1,15 +1,24 @@
-import { IsIn, IsInt, IsOptional } from 'class-validator'
+import { IsArray, IsInt, IsOptional, IsString } from 'class-validator'
+import { Transform } from 'class-transformer'
 
 export class CursorPaginationDto {
+  // id_52,likeCount_20
   @IsOptional()
-  @IsInt()
-  id?: number
+  @IsString()
+  cursor?: string
+
+  // [id_DESC, likeCount_DESC]
+  @IsOptional()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : [value],
+  )
+  @IsArray()
+  @IsString({
+    each: true,
+  })
+  order: string[] = ['id_DESC']
 
   @IsOptional()
-  @IsIn(['ASC', 'DESC'])
-  order: 'ASC' | 'DESC' = 'DESC'
-
   @IsInt()
-  @IsOptional()
   take: number = 5
 }

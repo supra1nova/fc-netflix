@@ -25,7 +25,7 @@ export class MovieService {
   ) {
   }
 
-  findListMovie(dto: GetMoviesDto) {
+  async findListMovie(dto: GetMoviesDto) {
     const { title } = dto
 
     let qb = this.movieRepository
@@ -40,9 +40,18 @@ export class MovieService {
     // 당연하게도 static 으로 추출해 사용할 수 있으나, 굳이 page형과 cursor형 pagination 을 module 로 사용하기 위해 적용
     // CommonUtil.ApplyPagePaginationParamsToQb(qb, dto)
     // this.commonService.applyPagePaginationParamsToQb(qb, dto)
+
     this.commonService.applyCursorPaginationParamsToQb(qb, dto)
 
-    return qb.getManyAndCount()
+    const [data, count] = await qb.getManyAndCount()
+
+    const nextCursor = this.commonService.generateNextCursor(data, dto.order)
+
+    return {
+      data,
+      nextCursor,
+      count,
+    }
   }
 
   findOneMovie(id: number) {
