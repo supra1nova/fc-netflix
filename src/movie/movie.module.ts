@@ -28,7 +28,7 @@ import { v4 } from 'uuid'
             // filename 지정
             // cb(발생되는error유형, 파일명) 형태로 제공되며, 에러가 없을 경우 null 을 입력
             // filename 을 설정하지 않으면 Multer가 스스로 랜덤하게 파일 이름을 지정 및 저장
-            filename: (req, file, cb) => {
+            /*filename: (req, file, cb) => {
               const split = file.originalname.split('.')
 
               let extension = 'txt'
@@ -38,7 +38,7 @@ import { v4 } from 'uuid'
               }
 
               cb(null, `${v4()}_${Date.now()}.${extension}`)
-            },
+            },*/
           },
         ),
       },

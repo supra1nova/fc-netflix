@@ -21,6 +21,7 @@ import { Role } from '../user/entities/user.entity'
 import { GetMoviesDto } from './dto/get-movies.dto'
 import { TransactionInterceptor } from '../common/interceptor/transaction.interceptor'
 import { FileFieldsInterceptor } from '@nestjs/platform-express'
+import { MovieFilePipe } from './pipe/movie-file.pipe'
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -97,6 +98,34 @@ export class MovieController {
   ) {
     // console.log(file)
     console.log(files)
+    return this.movieService.createMovie(createMovieDto, req.queryRunner)
+  }
+
+  @Post('movie-file-pipe')
+  @RBAC(Role.admin)
+  @UseInterceptors(TransactionInterceptor)
+  @UseInterceptors(FileInterceptor('movie', {
+    limits: {
+      fileSize: 1000 * 1000 * 20,
+    },
+    fileFilter(req, file, callback) {
+      console.log(file)
+      if (file.mimetype !== 'text/plain') {
+        return callback(new BadRequestException('TXT 파일만 업로드 가능합니다'), false)
+      }
+
+      return callback(null, true)
+    },
+  }))
+  postMovieForMovieFilePipe(
+    @Body() createMovieDto: CreateMovieDto,
+    @Req() req,
+    @UploadedFile(new MovieFilePipe({
+      maxSize: 20,
+      mimeType: 'text/plain',
+    })) file: Express.Multer.File,
+  ) {
+    console.log(file)
     return this.movieService.createMovie(createMovieDto, req.queryRunner)
   }
 
