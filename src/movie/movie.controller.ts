@@ -20,7 +20,7 @@ import { RBAC } from '../auth/decorator/rbac.decorator'
 import { Role } from '../user/entities/user.entity'
 import { GetMoviesDto } from './dto/get-movies.dto'
 import { TransactionInterceptor } from '../common/interceptor/transaction.interceptor'
-import { FilesInterceptor } from '@nestjs/platform-express'
+import { FileFieldsInterceptor } from '@nestjs/platform-express'
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -55,12 +55,28 @@ export class MovieController {
   @RBAC(Role.admin)
   @UseInterceptors(TransactionInterceptor)
   // @UseInterceptors(FileInterceptor('movie'))
-  @UseInterceptors(FilesInterceptor('movies'))
+  // @UseInterceptors(FilesInterceptor('movies'))
+  @UseInterceptors(FileFieldsInterceptor([
+    {
+      // 필드 이름
+      name: 'movie',
+      // 최대 파일 갯수
+      maxCount: 1
+    },
+    {
+      name: 'posters',
+      maxCount: 2
+    },
+  ]))
   postMovie(
     @Body() createMovieDto: CreateMovieDto,
     @Req() req,
     // @UploadedFile() file: Express.Multer.File,
-    @UploadedFiles() files: Express.Multer.File[],
+    // @UploadedFiles() files: Express.Multer.File[],
+    @UploadedFiles() files: {
+      movie?: Express.Multer.File[],
+      posters?: Express.Multer.File[]
+    },
   ) {
     // console.log(file)
     console.log(files)
