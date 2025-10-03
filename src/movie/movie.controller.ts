@@ -67,7 +67,23 @@ export class MovieController {
       name: 'posters',
       maxCount: 2
     },
-  ]))
+  ], {
+    // limits 내부에 제한되면 지정된 장소에 파일이 올라가지 않음
+    limits: {
+      // 업로드 파일의 사이즈 제한
+      fileSize: 1000 * 1000 * 20
+    },
+    // fileFilter 의 callback을 통해 파일 수신/미수신 여부 결정 가능하며, 필요시 사용자 지정 예외를 반환
+    // callback 의 첫번째 param은 예외 유형, 두번재 param은 파일 수신 여부 설정
+    fileFilter(req, file, callback){
+      console.log(file)
+      if (file.mimetype !== 'text/plain') {
+        return callback(new BadRequestException('TXT 파일만 업로드 가능합니다'), false)
+      }
+
+      return callback(null, true)
+    }
+  }))
   postMovie(
     @Body() createMovieDto: CreateMovieDto,
     @Req() req,
