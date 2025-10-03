@@ -9,7 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
-  Query, Req, UploadedFiles,
+  Query, Req, UploadedFile, UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common'
 import { MovieService } from './movie.service'
@@ -20,7 +20,7 @@ import { RBAC } from '../auth/decorator/rbac.decorator'
 import { Role } from '../user/entities/user.entity'
 import { GetMoviesDto } from './dto/get-movies.dto'
 import { TransactionInterceptor } from '../common/interceptor/transaction.interceptor'
-import { FileFieldsInterceptor } from '@nestjs/platform-express'
+import { FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express'
 import { MovieFilePipe } from './pipe/movie-file.pipe'
 
 @Controller('movie')
@@ -55,20 +55,9 @@ export class MovieController {
   @Post()
   @RBAC(Role.admin)
   @UseInterceptors(TransactionInterceptor)
-  // @UseInterceptors(FileInterceptor('movie'))
-  // @UseInterceptors(FilesInterceptor('movies'))
-  @UseInterceptors(FileFieldsInterceptor([
-    {
-      // 필드 이름
-      name: 'movie',
-      // 최대 파일 갯수
-      maxCount: 1,
-    },
-    {
-      name: 'posters',
-      maxCount: 2,
-    },
-  ], {
+  // FileInterceptor / FilesInterceptor / FileFieldsInterceptor 가 다르니 상황에 따라 각각 달리 사용 필요
+  // 차이에 대해서도 익혀두는 것이 좋음
+  @UseInterceptors(FileInterceptor('movie', {
     // limits 내부에 제한되면 지정된 장소에 파일이 올라가지 않음
     limits: {
       // 업로드 파일의 사이즈 제한
@@ -89,14 +78,72 @@ export class MovieController {
   postMovie(
     @Body() createMovieDto: CreateMovieDto,
     @Req() req,
-    // @UploadedFile() file: Express.Multer.File,
-    // @UploadedFiles() files: Express.Multer.File[],
+    @UploadedFiles() movie: Express.Multer.File,
+  ) {
+    console.log(movie)
+    return this.movieService.createMovie(createMovieDto, req.queryRunner)
+  }
+
+  @Post('files-interceptor')
+  @RBAC(Role.admin)
+  @UseInterceptors(TransactionInterceptor)
+  @UseInterceptors(FilesInterceptor('movies', 2, {
+    limits: {
+      fileSize: 1000 * 1000 * 20,
+    },
+    fileFilter(req, file, callback) {
+      console.log(file)
+      if (file.mimetype !== 'text/plain') {
+        return callback(new BadRequestException('TXT 파일만 업로드 가능합니다'), false)
+      }
+
+      return callback(null, true)
+    },
+  }))
+  postMovieForFilesInterceptor(
+    @Body() createMovieDto: CreateMovieDto,
+    @Req() req,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    console.log(files)
+    return this.movieService.createMovie(createMovieDto, req.queryRunner)
+  }
+
+  @Post('file-fields-interceptor')
+  @RBAC(Role.admin)
+  @UseInterceptors(TransactionInterceptor)
+  @UseInterceptors(FileFieldsInterceptor([
+    {
+      // 필드 이름
+      name: 'movie',
+      // 최대 파일 갯수
+      maxCount: 1,
+    },
+    {
+      name: 'posters',
+      maxCount: 2,
+    },
+  ], {
+    limits: {
+      fileSize: 1000 * 1000 * 20,
+    },
+    fileFilter(req, file, callback) {
+      console.log(file)
+      if (file.mimetype !== 'text/plain') {
+        return callback(new BadRequestException('TXT 파일만 업로드 가능합니다'), false)
+      }
+
+      return callback(null, true)
+    },
+  }))
+  postMovieForFileFieldsInterceptor(
+    @Body() createMovieDto: CreateMovieDto,
+    @Req() req,
     @UploadedFiles() files: {
       movie?: Express.Multer.File[],
       posters?: Express.Multer.File[]
     },
   ) {
-    // console.log(file)
     console.log(files)
     return this.movieService.createMovie(createMovieDto, req.queryRunner)
   }
