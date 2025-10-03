@@ -108,7 +108,9 @@ export class AuthService {
     const secret = this.configService.get<string>(
       isRefreshToken ? ConstVariable.REFRESH_TOKEN_SECRET : ConstVariable.ACCESS_TOKEN_SECRET,
     )
-    const expiresIn = isRefreshToken ? '24h' : 60 * 5
+    // todo: accesssToken 임시 시간 '24h' 에서 60 * 5 로 변경 필요
+    // const expiresIn = isRefreshToken ? '24h' : 60 * 5
+    const expiresIn = '24h'
 
     return await this.jwtService.signAsync(
       {
