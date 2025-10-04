@@ -205,4 +205,24 @@ export class MovieController {
   postMovies(@Param('round', new ParseIntPipe()) round: number) {
     return this.movieService.createDummyMovies(round)
   }
+
+  @Post(':id/like')
+  @UseInterceptors(TransactionInterceptor)
+  postMovieLike(
+    @Param('id') movieId: number,
+    @UserId() userId: number,
+    @QR() qr: QueryRunner,
+  ) {
+    return this.movieService.toggleMovieLike(movieId, userId, true, qr)
+  }
+
+  @Post(':id/dislike')
+  @UseInterceptors(TransactionInterceptor)
+  postMovieDislike(
+    @Param('id') movieId: number,
+    @UserId() userId: number,
+    @QR() qr: QueryRunner,
+  ) {
+    return this.movieService.toggleMovieLike(movieId, userId, false, qr)
+  }
 }

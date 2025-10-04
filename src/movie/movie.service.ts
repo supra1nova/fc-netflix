@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { CreateMovieDto } from './dto/create-movie.dto'
 import { UpdateMovieDto } from './dto/update-movie.dto'
 import { Movie } from './entity/movie.entity'
@@ -10,7 +10,9 @@ import { Genre } from '../genre/entities/genre.entity'
 import { GetMoviesDto } from './dto/get-movies.dto'
 import { CommonService } from '../common/module/common.service'
 import { join } from 'path'
-import {rename} from 'fs/promises'
+import { rename } from 'fs/promises'
+import { User } from '../user/entities/user.entity'
+import { MovieUserLike } from './entity/movie-user-like.entity'
 
 @Injectable()
 export class MovieService {
@@ -21,6 +23,10 @@ export class MovieService {
     private readonly genreRepository: Repository<Genre>,
     @InjectRepository(Director)
     private readonly directorRepository: Repository<Director>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(MovieUserLike)
+    private readonly movieUserLikeRepository: Repository<MovieUserLike>,
     // DataSource 는 TypeOrm 에서 가져오므로 그냥 불러오기만 하면 됨
     private readonly datasource: DataSource,
     private readonly commonService: CommonService,
@@ -286,6 +292,54 @@ export class MovieService {
       throw e
     } finally {
       await qr.release()
+    }
+  }
+
+  async toggleMovieLike(movieId: number, userId: number, isLike: boolean, qr: QueryRunner) {
+    const movie = await qr.manager.findOneBy(Movie, { id: movieId })
+
+    if (!movie) {
+      throw new BadRequestException('존재하지 않는 영화입니다.')
+    }
+
+    const user = await qr.manager.findOneBy(User, { id: userId })
+
+    if (!user) {
+      throw new UnauthorizedException('사용자 정보가 존재하지 않습니다.')
+    }
+
+    const likeRecord = await qr.manager.findOne(MovieUserLike, { where: { userId, movieId } })
+
+    if (likeRecord) {
+      if (isLike === likeRecord.isLike) {
+        await qr.manager
+          .createQueryBuilder()
+          .delete()
+          .from(MovieUserLike)
+          .where({ movie: { id: movieId }, user: { id: userId } })
+          .execute()
+      } else {
+        await qr.manager
+          .createQueryBuilder()
+          .update(MovieUserLike)
+          .set({ isLike })
+          .where('userId = :userId', { userId })
+          .andWhere('movieId = :movieId', { movieId })
+          .execute()
+      }
+    } else {
+      await qr.manager
+        .createQueryBuilder()
+        .insert()
+        .into(MovieUserLike)
+        .values({ movie: { id: movieId }, user: { id: userId }, isLike })
+        .execute()
+    }
+
+    const result = await qr.manager.findOneBy(MovieUserLike, { movie: { id: movieId }, user: { id: userId } })
+
+    return {
+      isLike: result?.isLike ?? null,
     }
   }
 }
