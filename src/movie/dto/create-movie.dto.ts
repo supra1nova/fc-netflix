@@ -25,4 +25,8 @@ export class CreateMovieDto {
     },
   )
   genreIds: number[]
+
+  @IsNotEmpty()
+  @IsString()
+  movieFileName: string
 }
