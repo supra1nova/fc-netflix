@@ -62,13 +62,14 @@ export class MovieService {
       .leftJoinAndSelect('movie.director', 'director')
       .leftJoinAndSelect('movie.genres', 'genres')
       .leftJoinAndSelect('movie.detail', 'detail')
+      .leftJoinAndSelect('movie.creator', 'creator')
       .where('movie.id = :id')
       .setParameter('id', id)
 
     return qb.getOne()
   }
 
-  async createMovie(createMovieDto: CreateMovieDto, qr: QueryRunner) {
+  async createMovie(createMovieDto: CreateMovieDto, userId: number, qr: QueryRunner) {
     const { genreIds, detail, directorId, ...movieRest } = createMovieDto
 
     // transaction 적용을 위해서는 개별 repository가 아니라 createQueryRunner.manager 를 이용해야 하며, 메서드의 첫번째 인수에 사용할 entity를 명시 필요(메서드에 따라 다르니 확인 필요)
@@ -98,9 +99,6 @@ export class MovieService {
 
     const filename = createMovieDto.movieFileName
 
-    const tempMovieFilePath = join(process.cwd(), 'public', 'temp', filename)
-    const newMovieFilePath = join(process.cwd(), 'public', 'movie', filename)
-
     const movieInsertResult = await qr.manager
       .createQueryBuilder()
       .insert()
@@ -108,6 +106,7 @@ export class MovieService {
       .values({
         detail: { id: detailId },
         director,
+        creator: { id: userId },
         movieFilePath: filename,
         ...movieRest,
       })
@@ -115,6 +114,9 @@ export class MovieService {
     const movieId = movieInsertResult.identifiers[0].id
 
     await qr.manager.createQueryBuilder().relation(Movie, 'genres').of(movieId).add(genreIds)
+
+    const tempMovieFilePath = join(process.cwd(), 'public', 'temp', filename)
+    const newMovieFilePath = join(process.cwd(), 'public', 'movie', filename)
 
     // transaction 영향이 없는 곳(다른 로직 실행 후) 에서 실행
     await rename(tempMovieFilePath, newMovieFilePath)
