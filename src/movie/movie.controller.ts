@@ -57,7 +57,7 @@ export class MovieController {
   @UseInterceptors(TransactionInterceptor)
   // FileInterceptor / FilesInterceptor / FileFieldsInterceptor 가 다르니 상황에 따라 각각 달리 사용 필요
   // 차이에 대해서도 익혀두는 것이 좋음
-  @UseInterceptors(FileInterceptor('movie', {
+  @UseInterceptors(FileInterceptor('file', {
     // limits 내부에 제한되면 지정된 장소에 파일이 올라가지 않음
     limits: {
       // 업로드 파일의 사이즈 제한
@@ -78,13 +78,13 @@ export class MovieController {
   postMovie(
     @Body() createMovieDto: CreateMovieDto,
     @Req() req,
-    @UploadedFiles() movie: Express.Multer.File,
+    @UploadedFile() movie: Express.Multer.File,
   ) {
     console.log(movie)
-    return this.movieService.createMovie(createMovieDto, req.queryRunner)
+    return this.movieService.createMovie(createMovieDto, movie.filename, req.queryRunner)
   }
 
-  @Post('files-interceptor')
+  /*@Post('files-interceptor')
   @RBAC(Role.admin)
   @UseInterceptors(TransactionInterceptor)
   @UseInterceptors(FilesInterceptor('movies', 2, {
@@ -174,7 +174,7 @@ export class MovieController {
   ) {
     console.log(file)
     return this.movieService.createMovie(createMovieDto, req.queryRunner)
-  }
+  }*/
 
   @Patch(':id')
   @RBAC(Role.admin)
