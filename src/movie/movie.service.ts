@@ -101,8 +101,6 @@ export class MovieService {
     const tempMovieFilePath = join(process.cwd(), 'public', 'temp', filename)
     const newMovieFilePath = join(process.cwd(), 'public', 'movie', filename)
 
-    await rename(tempMovieFilePath, newMovieFilePath)
-
     const movieInsertResult = await qr.manager
       .createQueryBuilder()
       .insert()
@@ -117,6 +115,9 @@ export class MovieService {
     const movieId = movieInsertResult.identifiers[0].id
 
     await qr.manager.createQueryBuilder().relation(Movie, 'genres').of(movieId).add(genreIds)
+
+    // transaction 영향이 없는 곳(다른 로직 실행 후) 에서 실행
+    await rename(tempMovieFilePath, newMovieFilePath)
 
     return await qr.manager.findOne(Movie, { where: { id: movieId }, relations: ['detail', 'director', 'genres'] })
   }
