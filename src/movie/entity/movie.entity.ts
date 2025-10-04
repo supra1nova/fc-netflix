@@ -3,6 +3,8 @@ import { BaseTable } from '../../common/entity/base.entity'
 import { MovieDetail } from './movie-detail.entity'
 import { Director } from '../../director/entity/director.entity'
 import { Genre } from '../../genre/entities/genre.entity'
+import { Transform } from 'class-transformer'
+import { isNotEmpty } from 'class-validator'
 
 // ManyToOne DIrector -> 감독은 여러개의 영화 제작 가능
 // ManyToMany Genre -> 영화는 여러개의 장르를 가질 수 있고 장르는 여러개의 영화에 속할 수 있음
@@ -18,6 +20,11 @@ export class Movie extends BaseTable {
   likeCount: number
 
   @Column({ nullable: true })
+  @Transform(({value}) => {
+    if (isNotEmpty(value)) {
+      return `http://localhost:3000/public/movie/${value}`
+    }
+  })
   movieFilePath: string
 
   @ManyToMany(() => Genre, (genre) => genre.movies, { cascade: true })

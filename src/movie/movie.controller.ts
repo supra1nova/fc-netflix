@@ -9,8 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
-  Query, Req, UploadedFile, UploadedFiles,
-  UseInterceptors,
+  Query, Req, UseInterceptors,
 } from '@nestjs/common'
 import { MovieService } from './movie.service'
 import { CreateMovieDto } from './dto/create-movie.dto'
@@ -20,7 +19,6 @@ import { RBAC } from '../auth/decorator/rbac.decorator'
 import { Role } from '../user/entities/user.entity'
 import { GetMoviesDto } from './dto/get-movies.dto'
 import { TransactionInterceptor } from '../common/interceptor/transaction.interceptor'
-import { FileInterceptor} from '@nestjs/platform-express'
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -54,6 +52,17 @@ export class MovieController {
   @Post()
   @RBAC(Role.admin)
   @UseInterceptors(TransactionInterceptor)
+  postMovie(
+    @Body() createMovieDto: CreateMovieDto,
+    @Req() req
+  ) {
+    return this.movieService.createMovie(createMovieDto, req.queryRunner)
+  }
+
+  /*
+  @Post()
+  @RBAC(Role.admin)
+  @UseInterceptors(TransactionInterceptor)
   // FileInterceptor / FilesInterceptor / FileFieldsInterceptor 가 다르니 상황에 따라 각각 달리 사용 필요
   // 차이에 대해서도 익혀두는 것이 좋음
   @UseInterceptors(FileInterceptor('file', {
@@ -83,7 +92,7 @@ export class MovieController {
     return this.movieService.createMovie(createMovieDto, movie.filename, req.queryRunner)
   }
 
-  /*@Post('files-interceptor')
+  @Post('files-interceptor')
   @RBAC(Role.admin)
   @UseInterceptors(TransactionInterceptor)
   @UseInterceptors(FilesInterceptor('movies', 2, {

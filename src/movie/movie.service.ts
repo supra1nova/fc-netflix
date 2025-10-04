@@ -10,6 +10,7 @@ import { Genre } from '../genre/entities/genre.entity'
 import { GetMoviesDto } from './dto/get-movies.dto'
 import { CommonService } from '../common/module/common.service'
 import { join } from 'path'
+import {rename} from 'fs/promises'
 
 @Injectable()
 export class MovieService {
@@ -67,7 +68,7 @@ export class MovieService {
     return qb.getOne()
   }
 
-  async createMovie(createMovieDto: CreateMovieDto, movieFileName: string, qr: QueryRunner) {
+  async createMovie(createMovieDto: CreateMovieDto, qr: QueryRunner) {
     const { genreIds, detail, directorId, ...movieRest } = createMovieDto
 
     // transaction 적용을 위해서는 개별 repository가 아니라 createQueryRunner.manager 를 이용해야 하며, 메서드의 첫번째 인수에 사용할 entity를 명시 필요(메서드에 따라 다르니 확인 필요)
@@ -95,7 +96,12 @@ export class MovieService {
       .execute()
     const detailId = detailInsertResult.identifiers[0].id
 
-    const movieFolder = join('public', 'movie')
+    const filename = createMovieDto.movieFileName
+
+    const tempMovieFilePath = join(process.cwd(), 'public', 'temp', filename)
+    const newMovieFilePath = join(process.cwd(), 'public', 'movie', filename)
+
+    await rename(tempMovieFilePath, newMovieFilePath)
 
     const movieInsertResult = await qr.manager
       .createQueryBuilder()
@@ -104,7 +110,7 @@ export class MovieService {
       .values({
         detail: { id: detailId },
         director,
-        movieFilePath: join(movieFolder, movieFileName),
+        movieFilePath: filename,
         ...movieRest,
       })
       .execute()

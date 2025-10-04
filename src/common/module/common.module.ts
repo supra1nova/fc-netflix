@@ -24,7 +24,7 @@ import { CommonController } from './common.controller'
             const dateString = format(new Date, 'yyyyMMddHHmmss')
 
             // file extension 의 경우 게시물을 실제 저장할 때 mimetype 을 확인해서 db에 저장한 뒤 불러와 붙일 예정이므로 굳이 저장할 필요 없음
-            const filename = `${v4()}_${dateString}`
+            const filename = `${v4()}_${dateString}.txt`
 
             console.log(filename)
 
