@@ -3,24 +3,29 @@ import { BaseTable } from '../../common/entity/base.entity'
 import { MovieDetail } from './movie-detail.entity'
 import { Director } from '../../director/entity/director.entity'
 import { Genre } from '../../genre/entities/genre.entity'
+import { Transform } from 'class-transformer'
+import { isNotEmpty } from 'class-validator'
 
 // ManyToOne DIrector -> 감독은 여러개의 영화 제작 가능
 // ManyToMany Genre -> 영화는 여러개의 장르를 가질 수 있고 장르는 여러개의 영화에 속할 수 있음
-
 @Entity()
 export class Movie extends BaseTable {
   @PrimaryGeneratedColumn()
   id: number
 
-  @Column({
-    unique: true,
-  })
+  @Column({ unique: true })
   title: string
 
-  @Column({
-    default: 0,
-  })
+  @Column({ default: 0 })
   likeCount: number
+
+  @Column({ nullable: true })
+  @Transform(({value}) => {
+    if (isNotEmpty(value)) {
+      return `http://localhost:3000/public/movie/${value}`
+    }
+  })
+  movieFilePath: string
 
   @ManyToMany(() => Genre, (genre) => genre.movies, { cascade: true })
   @JoinTable() // 🎯 ManyToMany 인 경우 반드시 소유자 쪽에만 작성
