@@ -20,8 +20,7 @@ import { RBAC } from '../auth/decorator/rbac.decorator'
 import { Role } from '../user/entities/user.entity'
 import { GetMoviesDto } from './dto/get-movies.dto'
 import { TransactionInterceptor } from '../common/interceptor/transaction.interceptor'
-import { FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express'
-import { MovieFilePipe } from './pipe/movie-file.pipe'
+import { FileInterceptor} from '@nestjs/platform-express'
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
