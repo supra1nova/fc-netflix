@@ -33,7 +33,7 @@ export class MovieService {
   ) {
   }
 
-  async findListMovie(dto: GetMoviesDto) {
+  async findListMovie(dto: GetMoviesDto, userId?: number) {
     const { title } = dto
 
     let qb = this.movieRepository
@@ -51,9 +51,47 @@ export class MovieService {
 
     this.commonService.applyCursorPaginationParamsToQb(qb, dto)
 
-    const [data, count] = await qb.getManyAndCount()
+    let [data, count] = await qb.getManyAndCount()
 
     const nextCursor = this.commonService.generateNextCursor(data, dto.order)
+
+    if (userId) {
+      const movieIds = data.map((movie) => movie.id)
+
+      const likedMovies = await this.movieUserLikeRepository.createQueryBuilder('mul')
+        .leftJoinAndSelect('mul.user', 'user')
+        .leftJoinAndSelect('mul.movie', 'movie')
+        .where('movie.id IN (:...movieIds)', { movieIds })
+        .andWhere('user.id = :userId', {userId})
+        .getMany()
+
+      /*
+      const likedMovieMap = {};
+      for (const mul of likedMovies) {
+        likedMovieMap[mul.movie.id] = mul.isLike;
+      }
+      */
+      /*
+      const likedMovieMap = likedMovies.reduce((acc, next) => ({
+        ... acc,
+        [next.movie.id]: next.isLike,
+      }), {})
+      */
+      const likedMovieMap = Object.fromEntries(
+        likedMovies.map(mul => [mul.movie.id, mul.isLike])
+      );
+
+      /*
+      data = data.map((movie) => ({
+        ...movie,
+        likeStatus: movie.id in likedMovieMap ? likedMovieMap[movie.id] : null
+      }))
+      */
+      data = data.map(m => ({
+        ...m,
+        likeStatus: likedMovieMap[m.id] ?? null
+      }))
+    }
 
     return {
       data,

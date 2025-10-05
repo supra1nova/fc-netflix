@@ -117,10 +117,10 @@ export class AppModule implements NestModule {
           path: 'auth/sign-in',
           method: RequestMethod.POST,
         },
-        {
+        /*{
           path: 'movie',
           method: RequestMethod.GET,
-        },
+        },*/
       )
       .forRoutes('*')
   }

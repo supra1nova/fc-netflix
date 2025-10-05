@@ -31,8 +31,11 @@ export class MovieController {
 
   @Get()
   @Public()
-  getListMovie(@Query() dto: GetMoviesDto) {
-    return this.movieService.findListMovie(dto)
+  getListMovie(
+    @Query() dto: GetMoviesDto,
+    @UserId() userId?: number,
+  ) {
+    return this.movieService.findListMovie(dto, userId)
   }
 
   @Get(':id')
