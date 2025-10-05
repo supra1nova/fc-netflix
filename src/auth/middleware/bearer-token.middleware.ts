@@ -9,7 +9,8 @@ export class BearerTokenMiddleware implements NestMiddleware {
   constructor(
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) {
+  }
 
   async use(req: Request, res: Response, next: NextFunction) {
     const authHeader = req.headers.authorization

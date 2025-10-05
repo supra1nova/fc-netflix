@@ -13,5 +13,5 @@ export const UserId = createParamDecorator(
     */
 
     return req?.user?.sub ?? null
-  }
+  },
 )
