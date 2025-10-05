@@ -22,6 +22,7 @@ import { TransactionInterceptor } from '../common/interceptor/transaction.interc
 import { UserId } from '../user/decorator/user-id.decorator'
 import { QueryRunner as QR } from '../common/decorator/query-runner.decorator'
 import { QueryRunner } from 'typeorm'
+import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -40,7 +41,13 @@ export class MovieController {
 
   @Get('recent')
   @Public()
+  // @UseInterceptor와 CacheInterceptor를 이용해 캐싱하게 되는 경우 url을 기반으로 캐싱하게 되므로 url이 키가 되어 캐싱됨
+  @UseInterceptors(CacheInterceptor)
+  // @CacheKey 가 별도 존재시 아무리 UseInterceptor와 CacehInterceptor 를 이용해도 지정된 키를 이용해 저장됨
+  @CacheKey('getMovieRecent')
+  @CacheTTL(1000)
   getRecentMovies() {
+    console.log('getMoviesRecent() 실행')
     return this.movieService.findRecentListMovie()
   }
 
