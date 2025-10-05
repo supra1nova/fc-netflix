@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { CreateMovieDto } from './dto/create-movie.dto'
 import { UpdateMovieDto } from './dto/update-movie.dto'
 import { Movie } from './entity/movie.entity'
@@ -10,7 +10,9 @@ import { Genre } from '../genre/entities/genre.entity'
 import { GetMoviesDto } from './dto/get-movies.dto'
 import { CommonService } from '../common/module/common.service'
 import { join } from 'path'
-import {rename} from 'fs/promises'
+import { rename } from 'fs/promises'
+import { User } from '../user/entities/user.entity'
+import { MovieUserLike } from './entity/movie-user-like.entity'
 
 @Injectable()
 export class MovieService {
@@ -21,13 +23,17 @@ export class MovieService {
     private readonly genreRepository: Repository<Genre>,
     @InjectRepository(Director)
     private readonly directorRepository: Repository<Director>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(MovieUserLike)
+    private readonly movieUserLikeRepository: Repository<MovieUserLike>,
     // DataSource 는 TypeOrm 에서 가져오므로 그냥 불러오기만 하면 됨
     private readonly datasource: DataSource,
     private readonly commonService: CommonService,
   ) {
   }
 
-  async findListMovie(dto: GetMoviesDto) {
+  async findListMovie(dto: GetMoviesDto, userId?: number) {
     const { title } = dto
 
     let qb = this.movieRepository
@@ -45,9 +51,47 @@ export class MovieService {
 
     this.commonService.applyCursorPaginationParamsToQb(qb, dto)
 
-    const [data, count] = await qb.getManyAndCount()
+    let [data, count] = await qb.getManyAndCount()
 
     const nextCursor = this.commonService.generateNextCursor(data, dto.order)
+
+    if (userId) {
+      const movieIds = data.map((movie) => movie.id)
+
+      const likedMovies = movieIds.length < 1 ? [] : await this.movieUserLikeRepository.createQueryBuilder('mul')
+        .leftJoinAndSelect('mul.user', 'user')
+        .leftJoinAndSelect('mul.movie', 'movie')
+        .where('movie.id IN (:...movieIds)', { movieIds })
+        .andWhere('user.id = :userId', { userId })
+        .getMany()
+
+      /*
+      const likedMovieMap = {};
+      for (const mul of likedMovies) {
+        likedMovieMap[mul.movie.id] = mul.isLike;
+      }
+      */
+      /*
+      const likedMovieMap = likedMovies.reduce((acc, next) => ({
+        ... acc,
+        [next.movie.id]: next.isLike,
+      }), {})
+      */
+      const likedMovieMap = Object.fromEntries(
+        likedMovies.map(mul => [mul.movie.id, mul.isLike]),
+      )
+
+      /*
+      data = data.map((movie) => ({
+        ...movie,
+        likeStatus: movie.id in likedMovieMap ? likedMovieMap[movie.id] : null
+      }))
+      */
+      data = data.map(m => ({
+        ...m,
+        likeStatus: likedMovieMap[m.id] ?? null,
+      }))
+    }
 
     return {
       data,
@@ -286,6 +330,61 @@ export class MovieService {
       throw e
     } finally {
       await qr.release()
+    }
+  }
+
+  async toggleMovieLike(movieId: number, userId: number, isLike: boolean, qr: QueryRunner) {
+    const movie = await qr.manager.findOneBy(Movie, { id: movieId })
+
+    if (!movie) {
+      throw new BadRequestException('존재하지 않는 영화입니다.')
+    }
+
+    const user = await qr.manager.findOneBy(User, { id: userId })
+
+    if (!user) {
+      throw new UnauthorizedException('사용자 정보가 존재하지 않습니다.')
+    }
+
+    const likeRecord = await qr.manager.findOne(MovieUserLike, { where: { userId, movieId } })
+
+    if (likeRecord) {
+      if (isLike === likeRecord.isLike) {
+        await qr.manager
+          .createQueryBuilder()
+          .delete()
+          .from(MovieUserLike)
+          .where({ movie: { id: movieId }, user: { id: userId } })
+          .execute()
+
+        await qr.manager.decrement(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1)
+      } else {
+        await qr.manager
+          .createQueryBuilder()
+          .update(MovieUserLike)
+          .set({ isLike })
+          .where('userId = :userId', { userId })
+          .andWhere('movieId = :movieId', { movieId })
+          .execute()
+
+        await qr.manager.increment(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1)
+        await qr.manager.decrement(Movie, { id: movieId }, !isLike ? 'likeCount' : 'dislikeCount', 1)
+      }
+    } else {
+      await qr.manager
+        .createQueryBuilder()
+        .insert()
+        .into(MovieUserLike)
+        .values({ movie: { id: movieId }, user: { id: userId }, isLike })
+        .execute()
+
+      await qr.manager.increment(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1)
+    }
+
+    const result = await qr.manager.findOneBy(MovieUserLike, { movie: { id: movieId }, user: { id: userId } })
+
+    return {
+      isLike: result?.isLike ?? null,
     }
   }
 }
