@@ -58,7 +58,7 @@ export class MovieService {
     if (userId) {
       const movieIds = data.map((movie) => movie.id)
 
-      const likedMovies = await this.movieUserLikeRepository.createQueryBuilder('mul')
+      const likedMovies = movieIds.length < 1 ? [] : await this.movieUserLikeRepository.createQueryBuilder('mul')
         .leftJoinAndSelect('mul.user', 'user')
         .leftJoinAndSelect('mul.movie', 'movie')
         .where('movie.id IN (:...movieIds)', { movieIds })
@@ -356,6 +356,8 @@ export class MovieService {
           .from(MovieUserLike)
           .where({ movie: { id: movieId }, user: { id: userId } })
           .execute()
+
+        await qr.manager.decrement(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1);
       } else {
         await qr.manager
           .createQueryBuilder()
@@ -364,6 +366,9 @@ export class MovieService {
           .where('userId = :userId', { userId })
           .andWhere('movieId = :movieId', { movieId })
           .execute()
+
+        await qr.manager.increment(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1);
+        await qr.manager.decrement(Movie, { id: movieId }, !isLike ? 'likeCount' : 'dislikeCount', 1);
       }
     } else {
       await qr.manager
@@ -372,6 +377,8 @@ export class MovieService {
         .into(MovieUserLike)
         .values({ movie: { id: movieId }, user: { id: userId }, isLike })
         .execute()
+
+      await qr.manager.increment(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1);
     }
 
     const result = await qr.manager.findOneBy(MovieUserLike, { movie: { id: movieId }, user: { id: userId } })

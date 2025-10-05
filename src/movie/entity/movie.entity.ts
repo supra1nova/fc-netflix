@@ -21,6 +21,9 @@ export class Movie extends BaseTable {
   @Column({ default: 0 })
   likeCount: number
 
+  @Column({ default: 0 })
+  dislikeCount: number
+
   @Column({ nullable: true })
   @Transform(({ value }) => {
     if (isNotEmpty(value)) {
