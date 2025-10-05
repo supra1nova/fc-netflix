@@ -38,6 +38,12 @@ export class MovieController {
     return this.movieService.findListMovie(dto, userId)
   }
 
+  @Get('recent')
+  @Public()
+  getRecentMovies() {
+    return this.movieService.findRecentListMovie()
+  }
+
   @Get(':id')
   @Public()
   // getOneMovie(@Param('id', ParseIntPipe) id: number) {
