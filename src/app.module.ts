@@ -21,8 +21,9 @@ import { ResponseTimeInterceptor } from './common/interceptor/response-time.inte
 import { ForbiddenExceptionFilter } from './common/filter/forbidden-exception.filter'
 import { QueryFailedExceptionFilter } from './common/filter/query-failed-exception.filter'
 import { ServeStaticModule } from '@nestjs/serve-static'
-import {join} from 'path'
+import { join } from 'path'
 import { CommonModule } from './common/module/common.module'
+import { MovieUserLike } from './movie/entity/movie-user-like.entity'
 
 @Module({
   imports: [
@@ -54,7 +55,14 @@ import { CommonModule } from './common/module/common.module'
         password: configService.get<string>(ConstVariable.DB_PASSWORD),
         database: configService.get<string>(ConstVariable.DB_DATABASE),
         // entity: [/*'src/!**!/!*.entity{.ts,.js}'*/],
-        entities: [Movie, MovieDetail, Director, Genre, User],
+        entities: [
+          Movie,
+          MovieDetail,
+          MovieUserLike,
+          Director,
+          Genre,
+          User,
+        ],
         synchronize: true,
       }),
       inject: [ConfigService],
@@ -109,10 +117,10 @@ export class AppModule implements NestModule {
           path: 'auth/sign-in',
           method: RequestMethod.POST,
         },
-        {
+        /*{
           path: 'movie',
           method: RequestMethod.GET,
-        },
+        },*/
       )
       .forRoutes('*')
   }

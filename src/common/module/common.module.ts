@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common'
 import { CommonService } from './common.service'
 import { MulterModule } from '@nestjs/platform-express'
 import { diskStorage } from 'multer'
-import {join} from 'path'
-import {v4} from 'uuid'
+import { join } from 'path'
+import { v4 } from 'uuid'
 import { format } from 'date-fns'
 import { CommonController } from './common.controller'
 
@@ -38,4 +38,5 @@ import { CommonController } from './common.controller'
   providers: [CommonService],
   exports: [CommonService],
 })
-export class CommonModule {}
+export class CommonModule {
+}

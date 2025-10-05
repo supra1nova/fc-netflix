@@ -31,8 +31,11 @@ export class MovieController {
 
   @Get()
   @Public()
-  getListMovie(@Query() dto: GetMoviesDto) {
-    return this.movieService.findListMovie(dto)
+  getListMovie(
+    @Query() dto: GetMoviesDto,
+    @UserId() userId?: number,
+  ) {
+    return this.movieService.findListMovie(dto, userId)
   }
 
   @Get(':id')
@@ -204,5 +207,25 @@ export class MovieController {
   @Post('bulk-upload/:round')
   postMovies(@Param('round', new ParseIntPipe()) round: number) {
     return this.movieService.createDummyMovies(round)
+  }
+
+  @Post(':id/like')
+  @UseInterceptors(TransactionInterceptor)
+  postMovieLike(
+    @Param('id') movieId: number,
+    @UserId() userId: number,
+    @QR() qr: QueryRunner,
+  ) {
+    return this.movieService.toggleMovieLike(movieId, userId, true, qr)
+  }
+
+  @Post(':id/dislike')
+  @UseInterceptors(TransactionInterceptor)
+  postMovieDislike(
+    @Param('id') movieId: number,
+    @UserId() userId: number,
+    @QR() qr: QueryRunner,
+  ) {
+    return this.movieService.toggleMovieLike(movieId, userId, false, qr)
   }
 }
