@@ -15,6 +15,11 @@ import { MovieUserLike } from './entity/movie-user-like.entity'
   imports: [
     TypeOrmModule.forFeature([Movie, MovieDetail, Director, Genre, User, MovieUserLike]),
     CommonModule,
+    /*// cache 모듈 적용
+    CacheModule.register({
+      // 캐쉬 만료 시간 적용
+      ttl: 5000,
+    }),*/
     /*
     MulterModule.register({
       storage: diskStorage(

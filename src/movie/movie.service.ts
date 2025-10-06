@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { CreateMovieDto } from './dto/create-movie.dto'
 import { UpdateMovieDto } from './dto/update-movie.dto'
 import { Movie } from './entity/movie.entity'
@@ -13,6 +13,7 @@ import { join } from 'path'
 import { rename } from 'fs/promises'
 import { User } from '../user/entities/user.entity'
 import { MovieUserLike } from './entity/movie-user-like.entity'
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager'
 
 @Injectable()
 export class MovieService {
@@ -27,6 +28,8 @@ export class MovieService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(MovieUserLike)
     private readonly movieUserLikeRepository: Repository<MovieUserLike>,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
     // DataSource 는 TypeOrm 에서 가져오므로 그냥 불러오기만 하면 됨
     private readonly datasource: DataSource,
     private readonly commonService: CommonService,
@@ -98,6 +101,32 @@ export class MovieService {
       nextCursor,
       count,
     }
+  }
+
+  async findRecentListMovie() {
+    // await this.cacheManager.set('number', 10)
+    // const data = await this.cacheManager.get('number')
+    const cachedData = await this.cacheManager.get('RECENT_MOVIE')
+
+    if (cachedData) {
+      console.log('캐쉬 가져옴')
+      return cachedData
+    }
+
+    const data = await this.movieRepository.find({
+      order: {
+        createdAt: 'DESC',
+      },
+      take: 10,
+    })
+
+    // ttl 을 모듈에서 적용했더라도 서비스 내에서 직접 적용하면 override되어 적용됨
+    // await this.cacheManager.set('RECENT_MOVIE', data, 3000)
+    // in memory cache의 경우 ttl 을 명시하지 않거나 null/undefined로 표기한 경우 무제한 처리
+    // await this.cacheManager.set('RECENT_MOVIE', data, undefined)
+    await this.cacheManager.set('RECENT_MOVIE', data)
+
+    return data
   }
 
   findOneMovie(id: number) {

@@ -1,4 +1,4 @@
-import { Controller, Post, Headers, UseGuards, Request, Get } from '@nestjs/common'
+import { Controller, Post, Headers, UseGuards, Request, Get, Body } from '@nestjs/common'
 import { AuthService } from './auth.service'
 import { Request as ExpressRequest } from 'express' // ✅ Request가 충돌되는 관계로 충돌 방지차원의 별칭 사용
 import { LocalAuthGuard } from './strategy/local.strategy'
@@ -8,7 +8,8 @@ import { Public } from './decorator/public.decorator'
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {
+  }
 
   @Public()
   @Post('sign-up')
@@ -29,6 +30,13 @@ export class AuthController {
     return {
       accessToken: await this.authService.issueToken(user, false),
     }
+  }
+
+  @Post('token/block')
+  blockToken(
+    @Body('token') token: string,
+  ) {
+    return this.authService.tokenBlock(token)
   }
 
   // @UseGuards(AuthGuard('local'))

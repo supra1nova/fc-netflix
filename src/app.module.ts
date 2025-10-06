@@ -24,6 +24,8 @@ import { ServeStaticModule } from '@nestjs/serve-static'
 import { join } from 'path'
 import { CommonModule } from './common/module/common.module'
 import { MovieUserLike } from './movie/entity/movie-user-like.entity'
+import { CacheModule } from '@nestjs/cache-manager'
+import { ThrottleInterceptor } from './common/interceptor/throttle.interceptor'
 
 @Module({
   imports: [
@@ -73,6 +75,12 @@ import { MovieUserLike } from './movie/entity/movie-user-like.entity'
       // 정적파일 서빙시 라우팅 prefix가 될 이름
       serveRoot: '/public/',
     }),
+    // cache 모듈 전역 적용
+    CacheModule.register({
+      // 캐쉬 만료 시간 적용
+      ttl: 5000,
+      isGlobal: true,
+    }),
     CommonModule,
     MovieModule,
     DirectorModule,
@@ -95,9 +103,15 @@ import { MovieUserLike } from './movie/entity/movie-user-like.entity'
       useClass: ResponseTimeInterceptor,
     },
     {
+      provide: APP_INTERCEPTOR,
+      useClass: ThrottleInterceptor,
+    },
+    /*
+    {
       provide: APP_FILTER,
       useClass: ForbiddenExceptionFilter,
     },
+    */
     {
       provide: APP_FILTER,
       useClass: QueryFailedExceptionFilter,

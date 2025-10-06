@@ -4,7 +4,8 @@ import { Public } from '../decorator/public.decorator'
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) {
+  }
 
   canActivate(context: ExecutionContext): boolean {
     // 만약 public decoration 이 되어있다면 모든 로직을 bypass 처리

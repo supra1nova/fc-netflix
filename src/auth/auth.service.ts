@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import { DataSource, Repository } from 'typeorm'
 import { Role, User } from '../user/entities/user.entity'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config'
 import { plainToInstance } from 'class-transformer'
 import { JwtService } from '@nestjs/jwt'
 import { ConstVariable } from '../common/const/const-variable'
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager'
 
 @Injectable()
 export class AuthService {
@@ -16,7 +17,10 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
     private readonly jwtService: JwtService,
-  ) {}
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
+  ) {
+  }
 
   // raw token -> 'Basic $token'
   async signUpUser(rawToken: string) {
@@ -82,9 +86,8 @@ export class AuthService {
         {
           secret: ACCESS_TOKEN_SECRET,
           // access token 의 경우 짧게 가져가서 보안적으로 안전하게 처리
-          // todo: accesssToken 임시 시간 '24h' 에서 60 * 5 로 변경 필요
-          // expiresIn: 60 * 5,
-          expiresIn: '24h',
+          expiresIn: 60 * 5,
+          // expiresIn: '24h',
         },
       ),
     }
@@ -125,18 +128,39 @@ export class AuthService {
     )
   }
 
+  /**
+   * 특정 token block 메서드
+   * @param token string
+   * @return true
+   */
+  async tokenBlock(token: string) {
+    const payload = this.jwtService.decode(token)
+    if (!payload) {
+      throw new BadRequestException('토큰이 존재하지 않습니다')
+    }
+
+    const expiryDate = +new Date(payload['exp'] * 1000)
+    const now = Date.now()
+
+    const differenceInSeconds = (expiryDate - now) / 1000
+    const cacheTtl = Math.max((differenceInSeconds) * 1000, 1)
+    await this.cacheManager.set(`BLOCK_TOKEN_${token}`, payload, cacheTtl)
+
+    return true
+  }
+
   parseBasicToken(rawToken: string) {
     // 1. token 을 띄워쓰기 기준으로 토큰 값 추출
     const basicSplit = rawToken.split(' ')
 
     if (basicSplit.length < 2) {
-      new BadRequestException('토큰 포맷이 잘못되었습니다.')
+      throw new BadRequestException('토큰 포맷이 잘못되었습니다.')
     }
 
     const [basic, token] = basicSplit
 
     if (basic.toLowerCase() !== 'basic') {
-      new BadRequestException('토큰 포맷이 잘못되었습니다.')
+      throw new BadRequestException('토큰 포맷이 잘못되었습니다.')
     }
 
     // 2. 추출한 token 을 base64 디코딩에서 이메일과 비밀번호로 나눔 -> 'email:password'
@@ -145,7 +169,7 @@ export class AuthService {
     // 3. 이메일과 비밀번호를 추출 -> [ email, password ]
     const tokenSplit = decoded.split(':')
     if (tokenSplit.length < 2) {
-      new BadRequestException('토큰 포맷이 잘못되었습니다.')
+      throw new BadRequestException('토큰 포맷이 잘못되었습니다.')
     }
 
     const [email, password] = tokenSplit
