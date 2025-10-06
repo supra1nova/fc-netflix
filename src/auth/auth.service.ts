@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import { DataSource, Repository } from 'typeorm'
 import { Role, User } from '../user/entities/user.entity'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config'
 import { plainToInstance } from 'class-transformer'
 import { JwtService } from '@nestjs/jwt'
 import { ConstVariable } from '../common/const/const-variable'
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager'
 
 @Injectable()
 export class AuthService {
@@ -16,6 +17,8 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
     private readonly jwtService: JwtService,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
   ) {
   }
 
@@ -123,6 +126,27 @@ export class AuthService {
         expiresIn,
       },
     )
+  }
+
+  /**
+   * 특정 token block 메서드
+   * @param token string
+   * @return true
+   */
+  async tokenBlock(token: string) {
+    const payload = this.jwtService.decode(token)
+    if (!payload) {
+      throw new BadRequestException('토큰이 존재하지 않습니다')
+    }
+
+    const expiryDate = +new Date(payload['exp'] * 1000)
+    const now = Date.now()
+
+    const differenceInSeconds = (expiryDate - now) / 1000
+    const cacheTtl = Math.max((differenceInSeconds) * 1000, 1)
+    await this.cacheManager.set(`BLOCK_TOKEN_${token}`, payload, cacheTtl)
+
+    return true
   }
 
   parseBasicToken(rawToken: string) {

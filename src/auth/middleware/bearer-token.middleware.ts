@@ -24,6 +24,13 @@ export class BearerTokenMiddleware implements NestMiddleware {
     }
 
     const token = this.validateBearerToken(authHeader)
+
+    // 블록된 토큰 조회 및 존재시 예외 발생
+    const blockedToken = await this.cacheManager.get(`BLOCK_TOKEN_${token}`)
+    if (blockedToken) {
+      throw new UnauthorizedException('차단된 토큰입니다.')
+    }
+
     // cache 에 저장되는 키 값
     const cacheKeyToken = `TOKEN_${token}`
 
@@ -42,6 +49,7 @@ export class BearerTokenMiddleware implements NestMiddleware {
 
     const decodedPayload = this.jwtService.decode(token)
     if (!decodedPayload) {
+      console.log(decodedPayload)
       throw new BadRequestException('잘못된 토큰입니다.')
     }
 
