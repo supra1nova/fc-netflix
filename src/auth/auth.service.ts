@@ -16,7 +16,8 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
     private readonly jwtService: JwtService,
-  ) {}
+  ) {
+  }
 
   // raw token -> 'Basic $token'
   async signUpUser(rawToken: string) {
@@ -82,9 +83,8 @@ export class AuthService {
         {
           secret: ACCESS_TOKEN_SECRET,
           // access token 의 경우 짧게 가져가서 보안적으로 안전하게 처리
-          // todo: accesssToken 임시 시간 '24h' 에서 60 * 5 로 변경 필요
-          // expiresIn: 60 * 5,
-          expiresIn: '24h',
+          expiresIn: 60 * 5,
+          // expiresIn: '24h',
         },
       ),
     }

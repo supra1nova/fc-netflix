@@ -9,18 +9,17 @@ import { Genre } from '../genre/entities/genre.entity'
 import { CommonModule } from '../common/module/common.module'
 import { User } from '../user/entities/user.entity'
 import { MovieUserLike } from './entity/movie-user-like.entity'
-import { CacheModule } from '@nestjs/cache-manager'
 
 @Module({
   // TypeOrmModule.forFeature 는 특정 모듈에 리포지토리(Repository)를 주입
   imports: [
     TypeOrmModule.forFeature([Movie, MovieDetail, Director, Genre, User, MovieUserLike]),
     CommonModule,
-    // cache 모듈 적용
+    /*// cache 모듈 적용
     CacheModule.register({
       // 캐쉬 만료 시간 적용
       ttl: 5000,
-    }),
+    }),*/
     /*
     MulterModule.register({
       storage: diskStorage(
