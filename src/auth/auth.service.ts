@@ -154,13 +154,13 @@ export class AuthService {
     const basicSplit = rawToken.split(' ')
 
     if (basicSplit.length < 2) {
-      new BadRequestException('토큰 포맷이 잘못되었습니다.')
+      throw new BadRequestException('토큰 포맷이 잘못되었습니다.')
     }
 
     const [basic, token] = basicSplit
 
     if (basic.toLowerCase() !== 'basic') {
-      new BadRequestException('토큰 포맷이 잘못되었습니다.')
+      throw new BadRequestException('토큰 포맷이 잘못되었습니다.')
     }
 
     // 2. 추출한 token 을 base64 디코딩에서 이메일과 비밀번호로 나눔 -> 'email:password'
@@ -169,7 +169,7 @@ export class AuthService {
     // 3. 이메일과 비밀번호를 추출 -> [ email, password ]
     const tokenSplit = decoded.split(':')
     if (tokenSplit.length < 2) {
-      new BadRequestException('토큰 포맷이 잘못되었습니다.')
+      throw new BadRequestException('토큰 포맷이 잘못되었습니다.')
     }
 
     const [email, password] = tokenSplit
