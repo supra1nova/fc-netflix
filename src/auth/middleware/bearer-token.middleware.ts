@@ -23,8 +23,36 @@ export class BearerTokenMiddleware implements NestMiddleware {
       return
     }
 
+    const token = this.validateBearerToken(authHeader)
+    // cache 에 저장되는 키 값
+    const cacheKeyToken = `TOKEN_${token}`
+
+    // cache 내 저장된 payload 조회
+    const cachePayload = await this.cacheManager.get(cacheKeyToken)
+
+    // payload가 저장되어 있다면 바로 반환, 없다면 jwt decode/verifyAsync/cache 저장 후 payload 반환
+    if (cachePayload) {
+      console.log(cachePayload)
+      console.log('---- Cache run for bearer token ----')
+
+      req.user = cachePayload
+
+      return next()
+    }
+
+    const decodedPayload = this.jwtService.decode(token)
+    if (!decodedPayload) {
+      throw new BadRequestException('잘못된 토큰입니다.')
+    }
+
+    const payloadTokenType = decodedPayload.type
+
+    if (payloadTokenType !== 'refresh' && payloadTokenType !== 'access') {
+      throw new BadRequestException('잘못된 토큰입니다.')
+    }
+
     try {
-      req.user = await this.parseBearerToken(authHeader)
+      req.user = await this.parseBearerToken(payloadTokenType, token, cacheKeyToken)
     } catch (e) {
       if (e.name === 'TokenExpiredError') {
         console.log('BearerTokenMiddleware#use : token expired')
@@ -38,28 +66,7 @@ export class BearerTokenMiddleware implements NestMiddleware {
     next()
   }
 
-  private async parseBearerToken(rawToken: string) {
-    const token = this.validateBearerToken(rawToken)
-    // cache 에 저장되는 키 값
-    const cacheKeyToken = `TOKEN_${token}`
-
-    // cache 내 저장된 payload 조회
-    const cachePayload = await this.cacheManager.get(cacheKeyToken)
-
-    // payload가 저장되어 있다면 바로 반환, 없다면 jwt decode/verifyAsync/cache 저장 후 payload 반환
-    if (cachePayload) {
-      console.log(cachePayload)
-      console.log('---- Cache run for bearer token ----')
-      return cachePayload
-    }
-
-    const decodedPayload = this.jwtService.decode(token)
-    const payloadTokenType = decodedPayload.type
-
-    if (payloadTokenType !== 'refresh' && payloadTokenType !== 'access') {
-      throw new BadRequestException('잘못된 토큰입니다.')
-    }
-
+  private async parseBearerToken(payloadTokenType: string, token: string, cacheKeyToken: string) {
     const secretType =
       payloadTokenType === 'refresh' ? ConstVariable.REFRESH_TOKEN_SECRET : ConstVariable.ACCESS_TOKEN_SECRET
     const secret = this.configService.get<string>(secretType)
