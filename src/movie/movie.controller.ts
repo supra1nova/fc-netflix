@@ -23,6 +23,7 @@ import { UserId } from '../user/decorator/user-id.decorator'
 import { QueryRunner as QR } from '../common/decorator/query-runner.decorator'
 import { QueryRunner } from 'typeorm'
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
+import { Throttle } from '../common/decorator/throttle.decorator'
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -32,6 +33,10 @@ export class MovieController {
 
   @Get()
   @Public()
+  @Throttle({
+    count: 5,
+    unit: 'minutes',
+  })
   getListMovie(
     @Query() dto: GetMoviesDto,
     @UserId() userId?: number,
