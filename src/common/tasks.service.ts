@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { Cron, SchedulerRegistry } from '@nestjs/schedule'
 import { join, parse } from 'path'
 import { readdir, unlink } from 'fs/promises'
@@ -6,6 +6,7 @@ import { differenceInDays, parse as dateParse } from 'date-fns'
 import { Repository } from 'typeorm'
 import { Movie } from 'src/movie/entity/movie.entity'
 import { InjectRepository } from '@nestjs/typeorm'
+import { DefaultLogger } from './logger/default.logger'
 
 @Injectable()
 export class TasksService {
@@ -15,7 +16,8 @@ export class TasksService {
   constructor(
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
-    private readonly schedulerRegistry: SchedulerRegistry
+    private readonly schedulerRegistry: SchedulerRegistry,
+    private readonly logger: DefaultLogger
   ) {
   }
 

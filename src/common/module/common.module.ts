@@ -9,6 +9,7 @@ import { CommonController } from './common.controller'
 import { TasksService } from '../tasks.service'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { Movie } from '../../movie/entity/movie.entity'
+import { DefaultLogger } from '../logger/default.logger'
 
 @Module({
   imports: [
@@ -39,8 +40,8 @@ import { Movie } from '../../movie/entity/movie.entity'
     }),
   ],
   controllers: [CommonController],
-  providers: [CommonService, TasksService],
-  exports: [CommonService],
+  providers: [CommonService, TasksService, DefaultLogger],
+  exports: [CommonService, DefaultLogger],
 })
 export class CommonModule {
 }
