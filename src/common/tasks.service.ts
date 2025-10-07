@@ -3,10 +3,16 @@ import { Cron } from '@nestjs/schedule'
 import { join, parse } from 'path'
 import { readdir, unlink } from 'fs/promises'
 import { differenceInDays, parse as dateParse } from 'date-fns'
+import { Repository } from 'typeorm'
+import { Movie } from 'src/movie/entity/movie.entity'
+import { InjectRepository } from '@nestjs/typeorm'
 
 @Injectable()
 export class TasksService {
-  constructor() {
+  constructor(
+    @InjectRepository(Movie)
+    private readonly movieRepository: Repository<Movie>,
+  ) {
   }
 
   // @Cron('* * * * * *')
@@ -55,5 +61,22 @@ export class TasksService {
     await Promise.all(deleteFilesTargets.map(
       (tgtFile) => unlink(join(process.cwd(), 'public', 'temp', tgtFile)),
     ))
+  }
+
+  @Cron('*/10 * * * * *')
+  async calculateMovieLikeCount() {
+    await this.movieRepository.query(`update movie m
+                                      set "likeCount" = (select count(*)
+                                                         from movie_user_like mul
+                                                         where mul."movieId" = m.id
+                                                           and mul."isLike" = true)`)
+
+    await this.movieRepository.query(`update movie m
+                                      set "dislikeCount" = (select count(*)
+                                                            from movie_user_like mul
+                                                            where mul."movieId" = m.id
+                                                              and mul."isLike" = false)`)
+
+
   }
 }
