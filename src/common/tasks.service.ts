@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common'
-import { SchedulerRegistry } from '@nestjs/schedule'
+import { Injectable, Logger } from '@nestjs/common'
+import { Cron, SchedulerRegistry } from '@nestjs/schedule'
 import { join, parse } from 'path'
 import { readdir, unlink } from 'fs/promises'
 import { differenceInDays, parse as dateParse } from 'date-fns'
@@ -9,6 +9,9 @@ import { InjectRepository } from '@nestjs/typeorm'
 
 @Injectable()
 export class TasksService {
+  // 내장로거 instantiate해서 사용
+  // private readonly logger = new Logger(TasksService.name)
+
   constructor(
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
@@ -16,9 +19,16 @@ export class TasksService {
   ) {
   }
 
-  // @Cron('* * * * * *')
+  @Cron('*/5 * * * * *')
   logEverySecond() {
     console.log('1초 마다 실행')
+
+    this.logger.fatal('fatal')
+    this.logger.error('error')
+    this.logger.warn('warn')
+    this.logger.log('log')
+    this.logger.debug('debug')
+    this.logger.verbose('verbose')
   }
 
   // cron 매 시 0분 0초 삭제
