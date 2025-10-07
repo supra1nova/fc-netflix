@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { Cron } from '@nestjs/schedule'
+import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule'
 import { join, parse } from 'path'
 import { readdir, unlink } from 'fs/promises'
 import { differenceInDays, parse as dateParse } from 'date-fns'
@@ -12,6 +12,7 @@ export class TasksService {
   constructor(
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
+    private readonly schedulerRegistry: SchedulerRegistry
   ) {
   }
 
@@ -21,7 +22,7 @@ export class TasksService {
   }
 
   // cron 매 시 0분 0초 삭제
-  @Cron('* 0 * * * *')
+  // @Cron('* 0 * * * *')
   async eraseOrphanFiles() {
     const files = await readdir(join(process.cwd(), 'public', 'temp'))
 
@@ -63,7 +64,7 @@ export class TasksService {
     ))
   }
 
-  @Cron('*/10 * * * * *')
+  // @Cron('*/10 * * * * *')
   async calculateMovieLikeCount() {
     await this.movieRepository.query(`update movie m
                                       set "likeCount" = (select count(*)
@@ -78,5 +79,39 @@ export class TasksService {
                                                               and mul."isLike" = false)`)
 
 
+  }
+
+  @Cron(CronExpression.EVERY_SECOND, {
+    name: 'printer_cron'
+  })
+  printer() {
+    console.log('print every seconds')
+  }
+
+  @Cron(CronExpression.EVERY_5_SECONDS)
+  stopper() {
+    console.log('---- stopper run ----')
+    const job = this.schedulerRegistry.getCronJob('printer_cron')
+
+    console.log('# Last Date')
+    // lastDate() → Date | null (순수 JS Date 객체, UTC 기준)
+    // 그래서 toISOString() 하면 항상 UTC 기준 ISO 문자열이 나옴
+    console.log(job.lastDate())
+
+    console.log('# Next Date')
+    // nextDate() → DateTime (luxon 라이브러리 기반, cron 내부에서 luxon 사용)
+    // 그래서 ts와 zone 정보까지 포함되어 있고, Asia/Seoul처럼 타임존도 같이 표시됨.
+    console.log(job.nextDate())
+
+    console.log('# Next Dates')
+    console.log(job.nextDates(5))
+
+    if (job.isActive) {
+      console.log('deactivate printer_cron')
+      job.stop()
+    } else {
+      console.log('activate printer_cron')
+      job.start()
+    }
   }
 }
