@@ -6,9 +6,13 @@ import { join } from 'path'
 import { v4 } from 'uuid'
 import { format } from 'date-fns'
 import { CommonController } from './common.controller'
+import { TasksService } from '../tasks.service'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { Movie } from '../../movie/entity/movie.entity'
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([Movie]),
     MulterModule.register({
       storage: diskStorage(
         {
@@ -35,7 +39,7 @@ import { CommonController } from './common.controller'
     }),
   ],
   controllers: [CommonController],
-  providers: [CommonService],
+  providers: [CommonService, TasksService],
   exports: [CommonService],
 })
 export class CommonModule {
