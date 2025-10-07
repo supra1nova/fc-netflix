@@ -18,7 +18,6 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import { AuthGuard } from './auth/guard/auth.guard'
 import { RBACGuard } from './auth/guard/rbac.gaurd'
 import { ResponseTimeInterceptor } from './common/interceptor/response-time.interceptor'
-import { ForbiddenExceptionFilter } from './common/filter/forbidden-exception.filter'
 import { QueryFailedExceptionFilter } from './common/filter/query-failed-exception.filter'
 import { ServeStaticModule } from '@nestjs/serve-static'
 import { join } from 'path'
@@ -26,6 +25,7 @@ import { CommonModule } from './common/module/common.module'
 import { MovieUserLike } from './movie/entity/movie-user-like.entity'
 import { CacheModule } from '@nestjs/cache-manager'
 import { ThrottleInterceptor } from './common/interceptor/throttle.interceptor'
+import { ScheduleModule } from '@nestjs/schedule'
 
 @Module({
   imports: [
@@ -82,6 +82,7 @@ import { ThrottleInterceptor } from './common/interceptor/throttle.interceptor'
       isGlobal: true,
     }),
     CommonModule,
+    ScheduleModule.forRoot(),
     MovieModule,
     DirectorModule,
     GenreModule,
