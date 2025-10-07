@@ -26,6 +26,8 @@ import { MovieUserLike } from './movie/entity/movie-user-like.entity'
 import { CacheModule } from '@nestjs/cache-manager'
 import { ThrottleInterceptor } from './common/interceptor/throttle.interceptor'
 import { ScheduleModule } from '@nestjs/schedule'
+import { WinstonModule } from 'nest-winston'
+import * as winston from 'winston'
 
 @Module({
   imports: [
@@ -80,6 +82,43 @@ import { ScheduleModule } from '@nestjs/schedule'
       // 캐쉬 만료 시간 적용
       ttl: 5000,
       isGlobal: true,
+    }),
+    WinstonModule.forRoot({
+      level: 'debug',
+      transports: [
+        // console 설정
+        new winston.transports.Console({
+          // 파일 내 로그 저장시 포메팅 설정
+          format: winston.format.combine(
+            // 색상 옵션
+            winston.format.colorize({
+              all: true
+            }),
+            // timestamp 옵션
+            winston.format.timestamp({
+              format: 'YYYY-MM-DD HH:mm:ss',
+            }),
+            // printf 옵션
+            // winston.format.timestamp 설정을하지 않으면 timestamp가 unknown으로 찍힘
+            // info 는 객체 (context, message, level)
+            winston.format.printf((info) => `${info.timestamp} [${info.context}] ${info.level}, ${info.message}`)
+          )
+        }),
+
+        // file 설정
+        new winston.transports.File({
+          // 폴더 설정
+          dirname: join(process.cwd(), 'logs'),
+          // 파일 이름 설정 - 미설정시 winston.log 라는 이름의 파일을 생성후 저장
+          filename: 'logs.log',
+          format: winston.format.combine(
+            winston.format.timestamp({
+              format: 'YYYY-MM-DD HH:mm:ss',
+            }),
+            winston.format.printf((info) => `${info.timestamp} [${info.context}] ${info.level}, ${info.message}`)
+          )
+        })
+      ]
     }),
     CommonModule,
     ScheduleModule.forRoot(),

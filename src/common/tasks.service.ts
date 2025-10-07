@@ -1,24 +1,38 @@
-import { Injectable } from '@nestjs/common'
-import { SchedulerRegistry } from '@nestjs/schedule'
+import { Inject, Injectable, LoggerService } from '@nestjs/common'
+import { Cron, SchedulerRegistry } from '@nestjs/schedule'
 import { join, parse } from 'path'
 import { readdir, unlink } from 'fs/promises'
 import { differenceInDays, parse as dateParse } from 'date-fns'
-import { Repository } from 'typeorm'
+import { Logger, Repository } from 'typeorm'
 import { Movie } from 'src/movie/entity/movie.entity'
 import { InjectRepository } from '@nestjs/typeorm'
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 
 @Injectable()
 export class TasksService {
+  // 내장로거 instantiate해서 사용
+  // private readonly logger = new Logger(TasksService.name)
+
   constructor(
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
-    private readonly schedulerRegistry: SchedulerRegistry
+    private readonly schedulerRegistry: SchedulerRegistry,
+    /*private readonly logger: DefaultLogger*/
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService
   ) {
   }
 
-  // @Cron('* * * * * *')
+  @Cron('*/5 * * * * *')
   logEverySecond() {
     console.log('1초 마다 실행')
+
+    this.logger.fatal?.('fatal', null, TasksService.name)
+    this.logger.error('error', null, TasksService.name)
+    this.logger.warn('warn', TasksService.name)
+    this.logger.log('log', TasksService.name)
+    this.logger.debug?.('debug', TasksService.name)
+    this.logger.verbose?.('verbose', TasksService.name)
   }
 
   // cron 매 시 0분 0초 삭제
