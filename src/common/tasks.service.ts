@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule'
+import { SchedulerRegistry } from '@nestjs/schedule'
 import { join, parse } from 'path'
 import { readdir, unlink } from 'fs/promises'
 import { differenceInDays, parse as dateParse } from 'date-fns'
@@ -81,14 +81,16 @@ export class TasksService {
 
   }
 
+  /*
   @Cron(CronExpression.EVERY_SECOND, {
     name: 'printer_cron'
   })
+  */
   printer() {
     console.log('print every seconds')
   }
 
-  @Cron(CronExpression.EVERY_5_SECONDS)
+  // @Cron(CronExpression.EVERY_5_SECONDS)
   stopper() {
     console.log('---- stopper run ----')
     const job = this.schedulerRegistry.getCronJob('printer_cron')
