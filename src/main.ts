@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { ValidationPipe } from '@nestjs/common'
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -9,6 +10,9 @@ async function bootstrap() {
     // logger 배열 안에 낮을 레벨의 로그로 설정하면 그보다 무조건 상위 레벨의 로그까지 포함해서 로그가 찍힘
     logger: ['debug']
   })
+
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER))
+
   // Validation 을 위한 설정
   app.useGlobalPipes(
     new ValidationPipe({
