@@ -23,7 +23,7 @@ export class TasksService {
   ) {
   }
 
-  @Cron('*/5 * * * * *')
+  // @Cron('*/5 * * * * *')
   logEverySecond() {
     console.log('1초 마다 실행')
 
