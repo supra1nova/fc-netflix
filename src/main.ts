@@ -45,13 +45,20 @@ async function bootstrap() {
     .setTitle('NestJS study Netflix')
     .setDescription('- Netflix 클론 코딩 통한 NestJS 기능 숙달 프로젝트')
     .setVersion('0.0.1')
+    .addBasicAuth()
+    .addBearerAuth()
     .build()
 
   /** 현재 app을 document config 에 기반해서 document를 생성 */
   const document = SwaggerModule.createDocument(app, config)
 
-  /** 브라우저에서 swagger ui 접근 경로 설정 */
-  SwaggerModule.setup('doc', app, document)
+  /** 브라우저에서 swagger ui 접근 경로 설정, 인증정보 유지 여부 설정 */
+  SwaggerModule.setup('doc', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+    customSiteTitle: 'NestJS Netflix API Docs', // 브라우저 탭 제목
+  })
 
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER))
 
