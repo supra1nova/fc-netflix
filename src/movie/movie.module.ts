@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common'
-import { MovieController, MovieControllerV2 } from './movie.controller'
+import { MovieController } from './movie.controller'
 import { MovieService } from './movie.service'
 import { Movie } from './entity/movie.entity'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -48,7 +48,7 @@ import { MovieUserLike } from './entity/movie-user-like.entity'
     }),
     */
   ],
-  controllers: [MovieController, MovieControllerV2],
+  controllers: [MovieController],
   providers: [MovieService],
 })
 export class MovieModule {

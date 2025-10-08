@@ -25,6 +25,7 @@ import { QueryRunner } from 'typeorm'
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
 import { Throttle } from '../common/decorator/throttle.decorator'
 
+/*
 @Controller({
   path: 'movie',
   version: '2',
@@ -36,12 +37,15 @@ export class MovieControllerV2 {
     return []
   }
 }
+*/
 
-// @Controller('movie')
+@Controller('movie')
+/*
 @Controller({
   path: 'movie',
   version: '1',
 })
+*/
 @UseInterceptors(ClassSerializerInterceptor)
 export class MovieController {
   constructor(private readonly movieService: MovieService) {
