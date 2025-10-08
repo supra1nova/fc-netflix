@@ -12,7 +12,7 @@ export class GenreService {
     private readonly genreRepository: Repository<Genre>,
   ) {}
 
-  findAllGenre(name?: string) {
+  findAllGenre(name?: string | null) {
     if (!name) {
       return this.genreRepository.findAndCount()
     }
