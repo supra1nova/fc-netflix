@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { ValidationPipe } from '@nestjs/common'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -35,7 +36,23 @@ async function bootstrap() {
     // defaultVersion: ['1', '2', '3'],
   })
   */
-  
+
+  /**
+   * document 관련 설정 (title, description, version 등)
+   * - versioning이 된 경우 config 도 그에 따라 추가 생성 필요함
+   */
+  const config = new DocumentBuilder()
+    .setTitle('NestJS study Netflix')
+    .setDescription('- Netflix 클론 코딩 통한 NestJS 기능 숙달 프로젝트')
+    .setVersion('0.0.1')
+    .build()
+
+  /** 현재 app을 document config 에 기반해서 document를 생성 */
+  const document = SwaggerModule.createDocument(app, config)
+
+  /** 브라우저에서 swagger ui 접근 경로 설정 */
+  SwaggerModule.setup('doc', app, document)
+
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER))
 
   // Validation 을 위한 설정
