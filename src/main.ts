@@ -5,10 +5,10 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    // logger 를 false 로 주면 로그 기능이 작동하지 않음
+    /** logger 를 false 로 주면 시스템 로그가 작동하지 않음 */
     // logger: false
-    // logger 배열 안에 낮을 레벨의 로그로 설정하면 그보다 무조건 상위 레벨의 로그까지 포함해서 로그가 찍힘
-    logger: ['debug']
+    /** logger 배열 안에 낮을 레벨의 로그로 설정하면 그보다 무조건 상위 레벨의 로그까지 포함해서 로그가 찍힘 */
+    logger: ['debug'],
   })
 
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER))

@@ -106,6 +106,7 @@ import * as winston from 'winston'
         }),
 
         // file 설정
+        /*
         new winston.transports.File({
           // 폴더 설정
           dirname: join(process.cwd(), 'logs'),
@@ -118,6 +119,7 @@ import * as winston from 'winston'
             winston.format.printf((info) => `${info.timestamp} [${info.context}] ${info.level}, ${info.message}`)
           )
         })
+        */
       ]
     }),
     CommonModule,
