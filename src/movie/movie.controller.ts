@@ -9,7 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
-  Query, UseInterceptors, Version,
+  Query, UseInterceptors,
 } from '@nestjs/common'
 import { MovieService } from './movie.service'
 import { CreateMovieDto } from './dto/create-movie.dto'
@@ -24,7 +24,7 @@ import { QueryRunner as QR } from '../common/decorator/query-runner.decorator'
 import { QueryRunner } from 'typeorm'
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
 import { Throttle } from '../common/decorator/throttle.decorator'
-import { ApiBearerAuth } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger'
 
 /*
 @Controller({
@@ -58,6 +58,21 @@ export class MovieController {
   @Throttle({
     count: 5,
     unit: 'minutes',
+  })
+  @ApiOperation({
+    description: '[Movie] 를 Pagination 하는 Api',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '성공적으로 API Pagination을 실행 했을때',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Pagination 데이터를 잘못 입력 했을때',
+  })
+  @ApiResponse({
+    status: 401,
+    description: '토큰이 만료 되었을때.',
   })
   getListMovie(
     @Query() dto: GetMoviesDto,
