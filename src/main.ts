@@ -16,9 +16,11 @@ async function bootstrap() {
 
   /** 따라서 setGlobalPrefix를 사용하지 말고 enableVersioning 를 통해 처리 */
   app.enableVersioning({
-    // URI 버저닝 방식 (URI = 0, HEADER = 1, MEDIA_TYPE = 2, CUSTOM = 3)
-    type: VersioningType.URI,
     /** URI 버저닝 방식 (URI = 0, HEADER = 1, MEDIA_TYPE = 2, CUSTOM = 3)*/
+    // type: VersioningType.URI,
+    type: VersioningType.HEADER,
+    /** type을 VersioningType.HEADER 지정시 header 키 값 지정 필수 */
+    header: 'version',
     /**
      * 기본 version이 필요하다면 기본 version 설정 후,
      * app.module의 middleware 에 exception 처리시 version 명시 필요

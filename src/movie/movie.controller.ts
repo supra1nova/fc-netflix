@@ -49,7 +49,6 @@ export class MovieController {
 
   @Get()
   @Public()
-  @Version(['1', '3'])
   @Throttle({
     count: 5,
     unit: 'minutes',
