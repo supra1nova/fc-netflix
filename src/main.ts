@@ -18,9 +18,12 @@ async function bootstrap() {
   app.enableVersioning({
     /** URI 버저닝 방식 (URI = 0, HEADER = 1, MEDIA_TYPE = 2, CUSTOM = 3)*/
     // type: VersioningType.URI,
-    type: VersioningType.HEADER,
     /** type을 VersioningType.HEADER 지정시 header 키 값 지정 필수 */
-    header: 'version',
+    // type: VersioningType.HEADER,
+    // header: 'version',
+    /** type을 VersioningType.MEDIA_TYPE 지정시 header 키 값 지정 및 '=' 붙이는 것 필수, */
+    type: VersioningType.MEDIA_TYPE,
+    key: 'v=',
     /**
      * 기본 version이 필요하다면 기본 version 설정 후,
      * app.module의 middleware 에 exception 처리시 version 명시 필요
