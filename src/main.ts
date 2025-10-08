@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
-import { ValidationPipe } from '@nestjs/common'
+import { ValidationPipe, VersioningType } from '@nestjs/common'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 
 async function bootstrap() {
@@ -9,6 +9,24 @@ async function bootstrap() {
     // logger: false
     /** logger 배열 안에 낮을 레벨의 로그로 설정하면 그보다 무조건 상위 레벨의 로그까지 포함해서 로그가 찍힘 */
     logger: ['debug'],
+  })
+
+  /** app.setGlobalPrefix 를 사용하게되면 전역적으로 특정 uri 를 앞에 붙여야 함 -> versioning 불가능 */
+  // app.setGlobalPrefix('v1')
+
+  /** 따라서 setGlobalPrefix를 사용하지 말고 enableVersioning 를 통해 처리 */
+  app.enableVersioning({
+    // URI 버저닝 방식 (URI = 0, HEADER = 1, MEDIA_TYPE = 2, CUSTOM = 3)
+    type: VersioningType.URI,
+    /** URI 버저닝 방식 (URI = 0, HEADER = 1, MEDIA_TYPE = 2, CUSTOM = 3)*/
+    /**
+     * 기본 version이 필요하다면 기본 version 설정 후,
+     * app.module의 middleware 에 exception 처리시 version 명시 필요
+     * 자동으로 v 를 붙여주므로 1을 주면 url 은 /v1/... 로 설정됨
+     * array 도 명시 가능
+     */
+    // defaultVersion: '1',
+    // defaultVersion: ['1', '2', '3'],
   })
 
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER))

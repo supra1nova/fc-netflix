@@ -92,7 +92,7 @@ import * as winston from 'winston'
           format: winston.format.combine(
             // 색상 옵션
             winston.format.colorize({
-              all: true
+              all: true,
             }),
             // timestamp 옵션
             winston.format.timestamp({
@@ -101,8 +101,8 @@ import * as winston from 'winston'
             // printf 옵션
             // winston.format.timestamp 설정을하지 않으면 timestamp가 unknown으로 찍힘
             // info 는 객체 (context, message, level)
-            winston.format.printf((info) => `${info.timestamp} [${info.context}] ${info.level}, ${info.message}`)
-          )
+            winston.format.printf((info) => `${info.timestamp} [${info.context}] ${info.level}, ${info.message}`),
+          ),
         }),
 
         // file 설정
@@ -120,7 +120,7 @@ import * as winston from 'winston'
           )
         })
         */
-      ]
+      ],
     }),
     CommonModule,
     ScheduleModule.forRoot(),
@@ -166,12 +166,24 @@ export class AppModule implements NestModule {
       .apply(BearerTokenMiddleware)
       .exclude(
         {
+          // path: 'auth/sign-up',
           path: 'auth/sign-up',
           method: RequestMethod.POST,
+          /**
+           * versioning 에 따른 추가
+           * 자동으로 v 를 붙여주므로 1을 주면 url 은 /v1/... 로 설정됨
+           * 버전이 지속적으로 추가되면 일일히 exclude에 추가해주거나,
+           * middleware 의 use 에서 req.originalUrl에 버저닝이 포함되있다면 바로 return next() 필요
+           * array 도 명시 가능
+          */
+          // version: '1'
+          // version: ['1', '2', '3'],
         },
         {
           path: 'auth/sign-in',
           method: RequestMethod.POST,
+          // version: '1',
+          // version: ['1', '2', '3'],
         },
         /*{
           path: 'movie',
