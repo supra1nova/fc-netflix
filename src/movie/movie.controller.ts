@@ -9,7 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
-  Query, UseInterceptors,
+  Query, UseInterceptors, Version,
 } from '@nestjs/common'
 import { MovieService } from './movie.service'
 import { CreateMovieDto } from './dto/create-movie.dto'
@@ -25,7 +25,23 @@ import { QueryRunner } from 'typeorm'
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
 import { Throttle } from '../common/decorator/throttle.decorator'
 
-@Controller('movie')
+@Controller({
+  path: 'movie',
+  version: '2',
+})
+@UseInterceptors(ClassSerializerInterceptor)
+export class MovieControllerV2 {
+  @Get()
+  getListMovie() {
+    return []
+  }
+}
+
+// @Controller('movie')
+@Controller({
+  path: 'movie',
+  version: '1',
+})
 @UseInterceptors(ClassSerializerInterceptor)
 export class MovieController {
   constructor(private readonly movieService: MovieService) {
