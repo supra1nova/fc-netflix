@@ -3,7 +3,10 @@ import { UserService } from './user.service'
 import { DataSource } from 'typeorm'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { User } from './entities/user.entity'
-import { NotFoundException } from '@nestjs/common'
+import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { CreateUserDto } from './dto/create-user.dto'
+import * as bcrypt from 'bcrypt'
 
 const mockUsers = [
   {
@@ -19,6 +22,10 @@ const mockUsers = [
     email: 'test3@test.com',
   },
 ] as const
+
+const mockConfigService = {
+  get: jest.fn(),
+}
 
 const mockQueryBuilder = {
   update: jest.fn().mockReturnThis(),
@@ -84,6 +91,10 @@ describe('UserService', () => {
           provide: DataSource,
           useValue: mockDataSource,
         },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
+        },
       ],
     }).compile()
 
@@ -92,6 +103,82 @@ describe('UserService', () => {
 
   it('should be defined', () => {
     expect(userService).toBeDefined()
+  })
+
+  describe('createUser', () => {
+    const email = 'test4@test.com' as const
+    const createUserDto: CreateUserDto = {
+      email,
+      password: '1234',
+    } as const
+
+    const id = mockUsers.length + 1
+    const hashRounds = 10
+    const hashedPassword = 'hashRandomWord'
+    const createdUser = {
+      id: mockUsers.length + 1,
+      ...createUserDto,
+    }
+
+    it('should create an user and return it', async () => {
+      // given
+      jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValueOnce(null)
+      jest.spyOn(mockConfigService, 'get').mockReturnValue(hashRounds)
+      jest.spyOn(bcrypt, 'hash').mockImplementation((password, hashRounds) => hashedPassword)
+      jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValueOnce({
+        id,
+        ...createUserDto,
+      })
+
+      // when
+      const result = await userService.createUser(createUserDto)
+
+      // then
+      expect(result).toEqual(createdUser)
+
+      expect(mockUserRepository.findOneBy).toHaveBeenNthCalledWith(1, { email })
+      expect(mockConfigService.get).toHaveBeenCalledWith(expect.anything())
+      expect(bcrypt.hash).toHaveBeenCalledWith(createUserDto.password, hashRounds)
+      expect(mockQueryRunner.connect).toHaveBeenCalled()
+      expect(mockQueryRunner.startTransaction).toHaveBeenCalled()
+      expect(mockQueryBuilder.insert).toHaveBeenCalled()
+      expect(mockQueryBuilder.into).toHaveBeenCalled()
+      expect(mockQueryBuilder.values).toHaveBeenCalled()
+      expect(mockQueryBuilder.execute).toHaveBeenCalled()
+      expect(mockQueryRunner.commitTransaction).toHaveBeenCalled()
+      expect(mockQueryRunner.release).toHaveBeenCalled()
+      expect(mockUserRepository.findOneBy).toHaveBeenLastCalledWith({ email })
+    })
+
+    it('should throw BadRequestException if email exists once create user', async () => {
+      // given
+      jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValue({ id, ...createUserDto })
+
+      // when & then
+      await expect(userService.createUser(createUserDto)).rejects.toThrow(BadRequestException)
+
+      expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ email })
+    })
+
+    it('should create an user and return it', async () => {
+      // given
+      jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValueOnce(null)
+      jest.spyOn(mockConfigService, 'get').mockReturnValue(hashRounds)
+      jest.spyOn(bcrypt, 'hash').mockImplementation((password, hashRounds) => hashedPassword)
+      jest.spyOn(mockQueryBuilder, 'insert').mockImplementation(() => {
+        throw new BadRequestException('testing')
+      })
+
+      // when & then
+      await expect(userService.createUser(createUserDto)).rejects.toThrow(BadRequestException)
+
+      expect(mockQueryRunner.connect).toHaveBeenCalled()
+      expect(mockQueryRunner.startTransaction).toHaveBeenCalled()
+      expect(mockQueryBuilder.insert).toHaveBeenCalled()
+      expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled()
+      expect(mockQueryRunner.release).toHaveBeenCalled()
+      expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ email })
+    })
   })
 
   describe('findAllUsers', () => {
