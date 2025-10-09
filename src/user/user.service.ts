@@ -13,6 +13,7 @@ export class UserService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly datasource: DataSource,
+    private readonly dataSource: DataSource,
   ) {
   }
 
@@ -60,7 +61,7 @@ export class UserService {
   }
 
   async updateUser(id: number, updateUserDto: UpdateUserDto) {
-    const qr = this.datasource.createQueryRunner()
+    const qr = this.dataSource.createQueryRunner()
     await qr.connect()
     await qr.startTransaction()
 
@@ -82,7 +83,15 @@ export class UserService {
   }
 
   async deleteUser(id: number) {
-    const qr = this.datasource.createQueryRunner()
+    await this.findOneUser(id)
+
+    await this.userRepository.delete(id)
+
+    return id
+  }
+
+  async deleteUserWithTransaction(id: number) {
+    const qr = this.dataSource.createQueryRunner()
     await qr.connect()
     await qr.startTransaction()
 
@@ -99,9 +108,7 @@ export class UserService {
     } finally {
       await qr.release()
     }
-  }
 
-  async removeUser(id: number) {
-    await this.userRepository.delete(id)
+    return id
   }
 }

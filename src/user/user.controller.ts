@@ -20,7 +20,8 @@ import { ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 @ApiBearerAuth()
 @UseInterceptors(ClassSerializerInterceptor)
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) {
+  }
 
   @Get()
   @ApiQuery({
@@ -51,5 +52,10 @@ export class UserController {
   @Delete(':id')
   async deleteUser(@Param('id', ParseIntPipe) id: number) {
     return await this.userService.deleteUser(id)
+  }
+
+  @Delete('delete/:id')
+  async deleteUserWithTransaction(@Param('id', ParseIntPipe) id: number) {
+    return await this.userService.deleteUserWithTransaction(id)
   }
 }

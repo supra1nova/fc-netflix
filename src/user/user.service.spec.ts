@@ -21,16 +21,40 @@ const mockUsers = [
 ] as const
 
 const mockQueryBuilder = {
+  update: jest.fn().mockReturnThis(),
+  set: jest.fn().mockReturnThis(),
+  execute: jest.fn().mockReturnThis(),
+  insert: jest.fn().mockReturnThis(),
+  into: jest.fn().mockReturnThis(),
+  values: jest.fn().mockReturnThis(),
+  delete: jest.fn().mockReturnThis(),
+  from: jest.fn().mockReturnThis(),
+
   where: jest.fn().mockReturnThis(),
   andWhere: jest.fn().mockReturnThis(),
   orderBy: jest.fn().mockReturnThis(),
   getManyAndCount: jest.fn().mockResolvedValue([mockUsers, mockUsers.length]),
 }
 
+const mockQueryRunner = {
+  connect: jest.fn(),
+  startTransaction: jest.fn(),
+  commitTransaction: jest.fn(),
+  rollbackTransaction: jest.fn(),
+  release: jest.fn(),
+  manager: {
+    save: jest.fn(),
+    find: jest.fn(),
+    update: jest.fn(),
+    createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
+  },
+}
+
 const mockUserRepository = {
   createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
   find: jest.fn(),
   findOneBy: jest.fn(),
+  delete: jest.fn(),
 }
 
 const mockDataSource = {
@@ -38,6 +62,7 @@ const mockDataSource = {
     getRepository: () => mockUserRepository,
   })),
   // 필요한 경우 manager나 queryRunner도 흉내낼 수 있음
+  createQueryRunner: jest.fn(() => mockQueryRunner),
   manager: {
     save: jest.fn(),
     findOne: jest.fn(),
@@ -144,6 +169,109 @@ describe('UserService', () => {
       await expect(userService.findOneUser(id)).rejects.toThrow(NotFoundException)
 
       expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ id })
+    })
+  })
+
+  describe('deleteUser', () => {
+    it('should delete user', async () => {
+      // given
+      const id = 1
+
+      let localMockUsers = [...mockUsers]
+
+      const user = localMockUsers.find(user => user.id === id)
+
+      // when
+      jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValue(user)
+      jest.spyOn(mockUserRepository, 'delete').mockImplementation(async (userId) => {
+        localMockUsers = localMockUsers.filter((user) => user.id !== userId)
+
+        return { affected: 1 }
+      })
+
+      const result = await userService.deleteUser(id)
+
+      // then
+      expect(result).toBe(id)
+
+      expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ id })
+      expect(mockUserRepository.delete).toHaveBeenCalledWith(id)
+
+      expect(localMockUsers.length).toBe(2)
+    })
+
+    it('should throw a NotFoundException if user not found to delete user', async () => {
+      // given
+      const id = 999
+
+      let localMockUsers = [...mockUsers]
+
+      // when
+      jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValue(null)
+
+      // then
+      await expect(userService.deleteUser(id)).rejects.toThrow(NotFoundException)
+
+      expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ id })
+
+      expect(localMockUsers.length).toBe(3)
+    })
+  })
+
+  describe('deleteUserWithTransaction', () => {
+    it('should delete user', async () => {
+      // given
+      const id = 1
+
+      let localMockUsers = [...mockUsers]
+
+      const user = localMockUsers.find(user => user.id === id)
+
+      // when
+      jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValue(user)
+
+      // 체이닝용 mock 재설정
+      jest.spyOn(mockQueryBuilder, 'delete').mockReturnThis()
+      jest.spyOn(mockQueryBuilder, 'from').mockReturnThis()
+      jest.spyOn(mockQueryBuilder, 'where').mockReturnThis()
+      jest.spyOn(mockQueryBuilder, 'execute').mockImplementation(async () => {
+        localMockUsers = localMockUsers.filter(u => u.id !== id)
+        return { affected: 1 }
+      })
+
+      const result = await userService.deleteUserWithTransaction(id)
+
+      // then
+      expect(result).toBe(id)
+
+      expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ id })
+      expect(mockQueryBuilder.delete).toHaveBeenCalled()
+      expect(mockQueryBuilder.from).toHaveBeenCalledWith(User)
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith({ id })
+      expect(mockQueryBuilder.execute).toHaveBeenCalled()
+
+      expect(localMockUsers.length).toBe(2)
+    })
+
+    it('should throw a NotFoundException if user not found to delete user', async () => {
+      // given
+      const id = 999
+
+      let localMockUsers = [...mockUsers]
+
+      // when
+      jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValue(null)
+
+      // then
+      await expect(userService.deleteUserWithTransaction(id)).rejects.toThrow(NotFoundException)
+
+      expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ id })
+      expect(mockQueryRunner.connect).toHaveBeenCalled()
+      expect(mockQueryRunner.startTransaction).toHaveBeenCalled()
+      expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled()
+      expect(mockQueryRunner.release).toHaveBeenCalled()
+
+      expect(localMockUsers.length).toBe(3)
     })
   })
 })
