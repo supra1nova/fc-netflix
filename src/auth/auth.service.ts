@@ -1,13 +1,13 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common'
-import { DataSource, Repository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { Role, User } from '../user/entities/user.entity'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as bcrypt from 'bcrypt'
 import { ConfigService } from '@nestjs/config'
-import { plainToInstance } from 'class-transformer'
 import { JwtService } from '@nestjs/jwt'
 import { ConstVariable } from '../common/const/const-variable'
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager'
+import { UserService } from '../user/user.service'
 
 @Injectable()
 export class AuthService {
@@ -15,8 +15,8 @@ export class AuthService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly configService: ConfigService,
-    private readonly dataSource: DataSource,
     private readonly jwtService: JwtService,
+    private readonly userService: UserService,
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
   ) {
@@ -26,34 +26,7 @@ export class AuthService {
   async signUpUser(rawToken: string) {
     const { email, password } = this.parseBasicToken(rawToken)
 
-    const user = await this.userRepository.findOneBy({ email })
-    if (user) {
-      throw new BadRequestException('이미 가입한 이메일입니다.')
-    }
-
-    // bcrypt.hash(대상비밀번호, 솔트 또는 라운드)
-    // 라운드는 bcrypt가 해싱을 수행하는 횟수
-    // 라운드의 경우 10이 보편적
-    const hash = await bcrypt.hash(password, this.configService.get<number>(ConstVariable.HASH_ROUNDS) as number)
-    const userInstance = plainToInstance(User, { email, password: hash })
-
-    const qr = this.dataSource.createQueryRunner()
-    await qr.connect()
-    await qr.startTransaction()
-
-    try {
-      await qr.manager.createQueryBuilder().insert().into(User).values(userInstance).execute()
-
-      await qr.commitTransaction()
-    } catch (e) {
-      await qr.rollbackTransaction()
-
-      throw e
-    } finally {
-      await qr.release()
-    }
-
-    return this.userRepository.findOneBy({ email })
+    return this.userService.createUser({ email, password })
   }
 
   async signInUser(rawToken: string) {
