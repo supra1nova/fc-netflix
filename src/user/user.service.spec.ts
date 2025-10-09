@@ -114,6 +114,83 @@ describe('UserService', () => {
     expect(userService).toBeDefined()
   })
 
+  describe('findAllUsers', () => {
+    it('should return all users without their email', async () => {
+      // given
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([mockUsers, mockUsers.length])
+
+      // when
+      const result = await userService.findAllUsers()
+
+      // then
+      expect(mockUserRepository.createQueryBuilder).toHaveBeenCalled()
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalled()
+      expect(mockQueryBuilder.getManyAndCount).toHaveBeenCalled()
+
+      expect(result).toBeDefined()
+      expect(result[1]).toBe(mockUsers.length)
+      expect(result[0][0]).toEqual(mockUsers[0])
+    })
+
+    it('should return specific users', async () => {
+      // given
+      const emailLike = 'test1'
+      const filtered = mockUsers.filter(user => user.email.includes(emailLike))
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([filtered, filtered.length])
+
+      // when
+      const result = await userService.findAllUsers(emailLike)
+
+      // then
+      expect(mockUserRepository.createQueryBuilder).toHaveBeenCalled()
+      expect(mockQueryBuilder.where).toHaveBeenCalled()
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'user.email LIKE :email',
+        { email: `%${emailLike}%` },
+      )
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalled()
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('user.createdAt', 'DESC')
+      expect(mockQueryBuilder.getManyAndCount).toHaveBeenCalled()
+
+      expect(result).toBeDefined()
+      expect(result[1]).toBe(1)
+      expect(result[0][0]).toEqual(mockUsers[0])
+    })
+  })
+
+  describe('findOneUser', () => {
+    it('should return one user', async () => {
+      // given
+      const id = 1
+
+      const user = mockUsers.find(user => user.id === id)
+      /** 같은 의미 - mocking 하고 있다는 것을 더 명확하게 드러냄 */
+      // mockUserRepository.findOneBy.mockResolvedValue(user)
+      jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValue(user)
+
+      // when
+      const result = await userService.findOneUser(id)
+
+      //then
+      expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ id })
+
+      expect(result).toEqual(mockUsers[0])
+    })
+
+    it('should throw a NotFoundException if user not found', async () => {
+      // given
+      const id = 99
+
+      // repository 의 findOneBy 에서 null 을 리턴하도록 세팅
+      jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValue(null)
+
+      // when & then
+      await expect(userService.findOneUser(id)).rejects.toThrow(NotFoundException)
+
+      expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ id })
+    })
+  })
+
   describe('createUser', () => {
     const email = 'test4@test.com' as const
     const createUserDto: CreateUserDto = {
@@ -129,7 +206,7 @@ describe('UserService', () => {
       ...createUserDto,
     }
 
-    it('should create an user and return it', async () => {
+    it('should create a user and return it', async () => {
       // given
       jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValueOnce(null)
       jest.spyOn(mockConfigService, 'get').mockReturnValue(hashRounds)
@@ -151,15 +228,15 @@ describe('UserService', () => {
       expect(mockQueryRunner.connect).toHaveBeenCalled()
       expect(mockQueryRunner.startTransaction).toHaveBeenCalled()
       expect(mockQueryBuilder.insert).toHaveBeenCalled()
-      expect(mockQueryBuilder.into).toHaveBeenCalled()
-      expect(mockQueryBuilder.values).toHaveBeenCalled()
+      expect(mockQueryBuilder.into).toHaveBeenCalledWith(User)
+      expect(mockQueryBuilder.values).toHaveBeenCalledWith(plainToInstance(User, { email, password: hashedPassword }))
       expect(mockQueryBuilder.execute).toHaveBeenCalled()
       expect(mockQueryRunner.commitTransaction).toHaveBeenCalled()
       expect(mockQueryRunner.release).toHaveBeenCalled()
       expect(mockUserRepository.findOneBy).toHaveBeenLastCalledWith({ email })
     })
 
-    it('should throw BadRequestException if email exists once create user', async () => {
+    it('should throw BadRequestException if email already exists', async () => {
       // given
       jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValue({ id, ...createUserDto })
 
@@ -169,17 +246,17 @@ describe('UserService', () => {
       expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ email })
     })
 
-    it('should create an user and return it', async () => {
+    it('should throw error/exception if creating user fails', async () => {
       // given
       jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValueOnce(null)
       jest.spyOn(mockConfigService, 'get').mockReturnValue(hashRounds)
       jest.spyOn(bcrypt, 'hash').mockImplementation((password, hashRounds) => hashedPassword)
       jest.spyOn(mockQueryBuilder, 'insert').mockImplementation(() => {
-        throw new BadRequestException('testing')
+        throw new Error('testing')
       })
 
       // when & then
-      await expect(userService.createUser(createUserDto)).rejects.toThrow(BadRequestException)
+      await expect(userService.createUser(createUserDto)).rejects.toThrow(Error)
 
       expect(mockQueryRunner.connect).toHaveBeenCalled()
       expect(mockQueryRunner.startTransaction).toHaveBeenCalled()
@@ -261,7 +338,7 @@ describe('UserService', () => {
   })
 
   describe('deleteUser', () => {
-    it('should delete user', async () => {
+    it('should delete specific user', async () => {
       // given
       const id = 1
 
@@ -288,7 +365,7 @@ describe('UserService', () => {
       expect(localMockUsers.length).toBe(2)
     })
 
-    it('should throw a NotFoundException if user not found to delete user', async () => {
+    it('should throw NotFoundException if deleting user fails', async () => {
       // given
       const id = 999
 
@@ -307,7 +384,7 @@ describe('UserService', () => {
   })
 
   describe('deleteUserWithTransaction', () => {
-    it('should delete user', async () => {
+    it('should delete specific user', async () => {
       // given
       const id = 1
 
@@ -341,7 +418,7 @@ describe('UserService', () => {
       expect(localMockUsers.length).toBe(2)
     })
 
-    it('should throw a NotFoundException if user not found to delete user', async () => {
+    it('should throw NotFoundException if user to delete is not found', async () => {
       // given
       const id = 999
 
