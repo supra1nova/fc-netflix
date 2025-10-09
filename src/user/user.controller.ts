@@ -14,16 +14,23 @@ import {
 import { UserService } from './user.service'
 import { CreateUserDto } from './dto/create-user.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
-import { ApiBearerAuth } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 
 @Controller('user')
 @ApiBearerAuth()
 @UseInterceptors(ClassSerializerInterceptor)
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) {
+  }
 
   @Get()
-  getAllUsers(@Query('email') email: string) {
+  @ApiQuery({
+    name: 'email',
+    required: false,
+    description: '검색할 이메일',
+    example: 'test1',
+  })
+  getAllUsers(@Query('email') email?: string | null) {
     return this.userService.findAllUsers(email)
   }
 

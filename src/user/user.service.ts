@@ -1,32 +1,33 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { CreateUserDto } from './dto/create-user.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
 import { InjectRepository } from '@nestjs/typeorm'
 import { User } from './entities/user.entity'
 import { DataSource, Repository } from 'typeorm'
 import { isNotEmpty } from 'class-validator'
-import { instanceToPlain } from 'class-transformer'
+import { instanceToPlain, plainToInstance } from 'class-transformer'
+import * as bcrypt from 'bcrypt'
+import { ConstVariable } from '../common/const/const-variable'
+import { ConfigService } from '@nestjs/config'
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly datasource: DataSource,
-  ) {}
+    private readonly configService: ConfigService,
+    private readonly dataSource: DataSource,
+  ) {
+  }
 
-  async findAllUsers(email: string) {
+  async findAllUsers(email?: string | null) {
     const qb = this.userRepository.createQueryBuilder('user')
 
     if (isNotEmpty(email)) {
-      qb.andWhere('user.email LIKE :email', { email: `%${email}%` })
+      qb.where('user.email LIKE :email', { email: `%${email}%` })
     }
 
     const [users, count] = await qb.orderBy('user.createdAt', 'DESC').getManyAndCount()
-
-    if (count < 1) {
-      return [users, count]
-    }
 
     return [instanceToPlain(users), count]
   }
@@ -42,17 +43,28 @@ export class UserService {
   }
 
   async createUser(createUserDto: CreateUserDto) {
-    const qr = this.datasource.createQueryRunner()
+    const { email, password } = createUserDto
+
+    const user = await this.userRepository.findOneBy({ email })
+
+    if (user) {
+      throw new BadRequestException('이미 가입한 이메일입니다.')
+    }
+
+    // bcrypt.hash(대상비밀번호, 솔트 또는 라운드)
+    // 라운드는 bcrypt가 해싱을 수행하는 횟수
+    // 라운드의 경우 10이 보편적
+    const hash = await bcrypt.hash(password, this.configService.get<number>(ConstVariable.HASH_ROUNDS) as number)
+    const userInstance = plainToInstance(User, { email, password: hash })
+
+    const qr = this.dataSource.createQueryRunner()
     await qr.connect()
     await qr.startTransaction()
 
     try {
-      const insertResult = await qr.manager.createQueryBuilder().insert().into(User).values(createUserDto).execute()
-      const userId = insertResult.identifiers[0].id
+      await qr.manager.createQueryBuilder().insert().into(User).values(userInstance).execute()
 
       await qr.commitTransaction()
-
-      return await this.findOneUser(userId)
     } catch (e) {
       await qr.rollbackTransaction()
 
@@ -60,10 +72,12 @@ export class UserService {
     } finally {
       await qr.release()
     }
+
+    return this.userRepository.findOneBy({ email })
   }
 
   async updateUser(id: number, updateUserDto: UpdateUserDto) {
-    const qr = this.datasource.createQueryRunner()
+    const qr = this.dataSource.createQueryRunner()
     await qr.connect()
     await qr.startTransaction()
 
@@ -85,7 +99,15 @@ export class UserService {
   }
 
   async deleteUser(id: number) {
-    const qr = this.datasource.createQueryRunner()
+    await this.findOneUser(id)
+
+    await this.userRepository.delete(id)
+
+    return id
+  }
+
+  async deleteUserWithTransaction(id: number) {
+    const qr = this.dataSource.createQueryRunner()
     await qr.connect()
     await qr.startTransaction()
 
@@ -102,5 +124,7 @@ export class UserService {
     } finally {
       await qr.release()
     }
+
+    return id
   }
 }
