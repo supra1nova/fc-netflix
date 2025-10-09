@@ -13,7 +13,8 @@ export class UserService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly datasource: DataSource,
-  ) {}
+  ) {
+  }
 
   async findAllUsers(email?: string | null) {
     const qb = this.userRepository.createQueryBuilder('user')
@@ -98,5 +99,9 @@ export class UserService {
     } finally {
       await qr.release()
     }
+  }
+
+  async removeUser(id: number) {
+    await this.userRepository.delete(id)
   }
 }
