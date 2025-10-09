@@ -7,19 +7,23 @@ import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { CreateUserDto } from './dto/create-user.dto'
 import * as bcrypt from 'bcrypt'
+import { plainToInstance } from 'class-transformer'
 
 const mockUsers = [
   {
     id: 1,
     email: 'test1@test.com',
+    password: '1234',
   },
   {
     id: 2,
     email: 'test2@test.com',
+    password: '1234',
   },
   {
     id: 3,
     email: 'test3@test.com',
+    password: '1234',
   },
 ] as const
 
@@ -99,6 +103,11 @@ describe('UserService', () => {
     }).compile()
 
     userService = module.get<UserService>(UserService)
+  })
+
+  afterEach(() => {
+    // it 을 기반으로 테스트가 끝날때 마다 함수 호출 기록을 초기화
+    jest.clearAllMocks()
   })
 
   it('should be defined', () => {
@@ -181,81 +190,73 @@ describe('UserService', () => {
     })
   })
 
-  describe('findAllUsers', () => {
-    it('should return all users without email', async () => {
+  describe('updateUser', () => {
+    const id = 1
+    const updateData = { email: 'testtest@email.com', password: 'password' }
+    const user = mockUsers.find((user) => user.id === id)
+    const updatedUser = { ...user, ...updateData } as const
+
+    const hashRounds = 10
+    const hashedPassword = 'hashRandomWord'
+
+    it('should update specific user', async () => {
       // given
-      mockQueryBuilder.getManyAndCount.mockResolvedValue([mockUsers, mockUsers.length])
+      jest.spyOn(mockUserRepository, 'findOneBy')
+        .mockResolvedValueOnce(user)     // first call: 기존 유저 조회
+        .mockResolvedValueOnce(updatedUser) // second call: 업데이트 후 조회
+      // config는 동기값으로 반환 (서비스가 await 하지 않을 수도 있으므로)
+      jest.spyOn(mockConfigService, 'get').mockReturnValue(hashRounds)
+      // bcrypt.hash는 실제 코드에서 await 하므로 Promise 반환 mock으로 맞춰줌
+      jest.spyOn(bcrypt, 'hash').mockImplementation((password, hashRounds) => hashedPassword)
 
       // when
-      const result = await userService.findAllUsers()
+      const result = await userService.updateUser(id, updateData)
 
       // then
-      expect(mockUserRepository.createQueryBuilder).toHaveBeenCalled()
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalled()
-      expect(mockQueryBuilder.getManyAndCount).toHaveBeenCalled()
-
-      expect(result).toBeDefined()
-      expect(result[1]).toBe(mockUsers.length)
-      expect(result[0][0]).toEqual(mockUsers[0])
+      expect(result).toEqual(updatedUser)
+      expect(mockUserRepository.findOneBy).toHaveBeenNthCalledWith(1, { id })
+      expect(mockConfigService.get).toHaveBeenCalledWith(expect.anything())
+      expect(bcrypt.hash).toHaveBeenCalledWith(updateData.password, hashRounds)
+      expect(mockQueryRunner.connect).toHaveBeenCalled()
+      expect(mockQueryRunner.startTransaction).toHaveBeenCalled()
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith(User)
+      expect(mockQueryBuilder.set).toHaveBeenCalledWith(expect.objectContaining({ email: updateData.email, password: hashedPassword }))
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith({ id })
+      expect(mockQueryRunner.commitTransaction).toHaveBeenCalled()
+      expect(mockQueryRunner.release).toHaveBeenCalled()
+      expect(mockUserRepository.findOneBy).toHaveBeenLastCalledWith({ id })
     })
 
-    it('should return specific users', async () => {
+    it('should throw NotFoundException if user to update is not found', async () => {
       // given
-      const emailLike = 'test1'
-      const filtered = mockUsers.filter(user => user.email.includes(emailLike))
-      mockQueryBuilder.getManyAndCount.mockResolvedValue([filtered, filtered.length])
-
-      // when
-      const result = await userService.findAllUsers(emailLike)
-
-      // then
-      expect(mockUserRepository.createQueryBuilder).toHaveBeenCalled()
-      expect(mockQueryBuilder.where).toHaveBeenCalled()
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
-        'user.email LIKE :email',
-        { email: `%${emailLike}%` },
-      )
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalled()
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('user.createdAt', 'DESC')
-      expect(mockQueryBuilder.getManyAndCount).toHaveBeenCalled()
-
-      expect(result).toBeDefined()
-      expect(result[1]).toBe(1)
-      expect(result[0][0]).toEqual(mockUsers[0])
-    })
-  })
-
-  describe('findOneUser', () => {
-    it('should return one user', async () => {
-      // given
-      const id = 1
-
-      const user = mockUsers.find(user => user.id === id)
-      /** 같은 의미 - mocking 하고 있다는 것을 더 명확하게 드러냄 */
-      // mockUserRepository.findOneBy.mockResolvedValue(user)
-      jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValue(user)
-
-      // when
-      const result = await userService.findOneUser(id)
-
-      //then
-      expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ id })
-
-      expect(result).toEqual(mockUsers[0])
-    })
-
-    it('should throw a NotFoundException if user not found', async () => {
-      // given
-      const id = 99
-
-      // repository 의 findOneBy 에서 null 을 리턴하도록 세팅
       jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValue(null)
 
-      // when
-      //then
-      await expect(userService.findOneUser(id)).rejects.toThrow(NotFoundException)
+      // when & then
+      await expect(userService.updateUser(id, updateData)).rejects.toThrow(NotFoundException)
 
       expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ id })
+    })
+
+    it('should throw error/exception if creating user fails', async () => {
+      // given
+      jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValue(user)
+      jest.spyOn(mockConfigService, 'get').mockReturnValue(hashRounds)
+      jest.spyOn(bcrypt, 'hash').mockImplementation((password, hashRounds) => hashedPassword)
+      jest.spyOn(mockQueryBuilder, 'update').mockImplementation(() => {
+        throw new Error('testing')
+      })
+
+      // when & then
+      await expect(userService.updateUser(id, updateData)).rejects.toThrow(Error)
+
+      expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ id })
+      expect(mockConfigService.get).toHaveBeenCalledWith(expect.anything())
+      expect(bcrypt.hash).toHaveBeenCalledWith(updateData.password, hashRounds)
+      expect(mockQueryRunner.connect).toHaveBeenCalled()
+      expect(mockQueryRunner.startTransaction).toHaveBeenCalled()
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith(User)
+      expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled()
+      expect(mockQueryRunner.release).toHaveBeenCalled()
     })
   })
 

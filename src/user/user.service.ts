@@ -77,25 +77,35 @@ export class UserService {
   }
 
   async updateUser(id: number, updateUserDto: UpdateUserDto) {
+    await this.findOneUser(id)
+
+    const { email, password } = updateUserDto
+
+    const hash = await bcrypt.hash(password, this.configService.get<number>(ConstVariable.HASH_ROUNDS) as number)
+    const userInstance = plainToInstance(User, { email, password: hash })
+
     const qr = this.dataSource.createQueryRunner()
     await qr.connect()
     await qr.startTransaction()
 
     try {
-      await this.findOneUser(id)
-
-      await qr.manager.createQueryBuilder().update(User).set(updateUserDto).where({ id }).execute()
+      await qr.manager.createQueryBuilder()
+        .update(User)
+        .set(userInstance)
+        .where({ id })
+        .execute()
 
       await qr.commitTransaction()
 
-      return await this.findOneUser(id)
     } catch (e) {
       await qr.rollbackTransaction()
 
-      throw e
+      throw new e
     } finally {
       await qr.release()
     }
+
+    return await this.findOneUser(id)
   }
 
   async deleteUser(id: number) {
