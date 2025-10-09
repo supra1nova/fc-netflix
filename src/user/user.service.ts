@@ -15,18 +15,14 @@ export class UserService {
     private readonly datasource: DataSource,
   ) {}
 
-  async findAllUsers(email: string) {
+  async findAllUsers(email?: string | null) {
     const qb = this.userRepository.createQueryBuilder('user')
 
     if (isNotEmpty(email)) {
-      qb.andWhere('user.email LIKE :email', { email: `%${email}%` })
+      qb.where('user.email LIKE :email', { email: `%${email}%` })
     }
 
     const [users, count] = await qb.orderBy('user.createdAt', 'DESC').getManyAndCount()
-
-    if (count < 1) {
-      return [users, count]
-    }
 
     return [instanceToPlain(users), count]
   }

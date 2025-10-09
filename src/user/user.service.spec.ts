@@ -4,12 +4,31 @@ import { DataSource } from 'typeorm'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { User } from './entities/user.entity'
 
+const mockUsers = [
+  {
+    id: 1,
+    email: 'test1@test.com'
+  },
+  {
+    id: 2,
+    email: 'test2@test.com'
+  },
+  {
+    id: 3,
+    email: 'test3@test.com'
+  }
+]
+
+const mockQueryBuilder = {
+  where: jest.fn().mockReturnThis(),
+  andWhere: jest.fn().mockReturnThis(),
+  orderBy: jest.fn().mockReturnThis(),
+  getManyAndCount: jest.fn().mockResolvedValue([mockUsers, mockUsers.length]),
+};
+
 const mockUserRepository = {
-  findOne: jest.fn(),
-  save: jest.fn(),
+  createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
   find: jest.fn(),
-  update: jest.fn(),
-  delete: jest.fn(),
 }
 
 const mockDataSource = {
@@ -24,7 +43,7 @@ const mockDataSource = {
 } as unknown as DataSource
 
 describe('UserService', () => {
-  let service: UserService
+  let userService: UserService
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -41,10 +60,54 @@ describe('UserService', () => {
       ],
     }).compile()
 
-    service = module.get<UserService>(UserService)
+    userService = module.get<UserService>(UserService)
   })
 
   it('should be defined', () => {
-    expect(service).toBeDefined()
+    expect(userService).toBeDefined()
+  })
+
+  describe('findAllUsers', () => {
+    it('should return all users without email', async () => {
+      // given
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([mockUsers, mockUsers.length])
+
+      // when
+      const result = await userService.findAllUsers()
+
+      // then
+      expect(mockUserRepository.createQueryBuilder).toHaveBeenCalled()
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalled()
+      expect(mockQueryBuilder.getManyAndCount).toHaveBeenCalled()
+
+      expect(result).toBeDefined()
+      expect(result[1]).toBe(mockUsers.length)
+      expect(result[0][0]).toEqual(mockUsers[0])
+    })
+
+    it('should return specific users', async () => {
+      // given
+      const emailLike = 'test1'
+      const filtered = mockUsers.filter(user => user.email.includes(emailLike))
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([filtered, filtered.length])
+
+      // when
+      const result = await userService.findAllUsers(emailLike)
+
+      // then
+      expect(mockUserRepository.createQueryBuilder).toHaveBeenCalled()
+      expect(mockQueryBuilder.where).toHaveBeenCalled()
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'user.email LIKE :email',
+        { email: `%${emailLike}%` }
+      )
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalled()
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('user.createdAt', 'DESC')
+      expect(mockQueryBuilder.getManyAndCount).toHaveBeenCalled()
+
+      expect(result).toBeDefined()
+      expect(result[1]).toBe(1)
+      expect(result[0][0]).toEqual(mockUsers[0])
+    })
   })
 })
