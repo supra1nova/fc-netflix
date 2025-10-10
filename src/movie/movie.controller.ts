@@ -111,7 +111,7 @@ export class MovieController {
   }
 
   @Post()
-  @RBAC(Role.admin)
+  @RBAC(Role.ADMIN)
   @UseInterceptors(TransactionInterceptor)
   postMovie(
     @Body() createMovieDto: CreateMovieDto,
@@ -247,13 +247,13 @@ export class MovieController {
   }*/
 
   @Patch(':id')
-  @RBAC(Role.admin)
+  @RBAC(Role.ADMIN)
   patchMovie(@Param('id', new ParseIntPipe()) id: number, @Body() updateMovieDto: UpdateMovieDto) {
     return this.movieService.updateMovie(id, updateMovieDto)
   }
 
   @Delete(':id')
-  @RBAC(Role.admin)
+  @RBAC(Role.ADMIN)
   deleteMovie(@Param('id', new ParseIntPipe()) id: number) {
     return this.movieService.deleteMovie(id)
   }

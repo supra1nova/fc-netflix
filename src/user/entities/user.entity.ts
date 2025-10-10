@@ -5,9 +5,9 @@ import { Movie } from '../../movie/entity/movie.entity'
 import { MovieUserLike } from '../../movie/entity/movie-user-like.entity'
 
 export enum Role {
-  admin,
-  paidUser,
-  user,
+  ADMIN,
+  PAID_USER,
+  USER,
 }
 
 @Entity()
@@ -27,7 +27,7 @@ export class User extends BaseTable {
 
   @Column({
     enum: Role,
-    default: Role.user,
+    default: Role.USER,
   })
   @Exclude()
   role: Role
