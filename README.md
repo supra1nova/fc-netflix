@@ -1,62 +1,63 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# FC-Netflix
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+### Netflix CRUD 프로젝트 - NestJS 기반 개인 토이 프로젝트
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 📚 프로젝트 개요
 
-netflix CRUD 프로젝트 (Fastcampus 한번에 끝내는 NestJS 패키지 - 기초부터 MSA까지 강의)
+* **목표**: NestJS를 활용하여 Netflix와 유사한 CRUD 서비스 구현 및 학습 후 배포 진행
+* **프로젝트 유형**: 개인 토이 프로젝트
+* **주요 기능(2025년 10월 기준)**:
+    * 영화 CRUD 및 테스트 코드
+    * 장르 CRUD 및 테스트 코드
+    * 감독 CRUD 및 테스트 코드
+    * 유저 CRUD 및 테스트 코드
+    * 회원가입 및 JWT 인증 기반 로그인 기능 및 테스트 코드
 
-## Project setup
+---
 
-```bash
-$ npm install
-```
+## 🛠 기술 스택
 
-## Compile and run the project
+* **백엔드**: NestJS, TypeScript
+* **테스트**: Jest (단위 테스트, e2e 테스트)
+* **패키지 관리**: npm
+
+---
+
+## ⚡ 설치 및 실행
 
 ```bash
-# development
-$ npm run start
+# 프로젝트 설치
+npm install
 
-# watch mode
-$ npm run start:dev
+# 개발 모드 실행
+npm run start:dev
 
-# production mode
-$ npm run start:prod
+# 프로덕션 모드 실행
+npm run start:prod
 ```
 
-## Run tests
+---
+
+## 🧪 테스트 실행
+- 현재 
 
 ```bash
-# unit tests
-$ npm run test
+# 단위 테스트
+npm run test
 
-# e2e tests
-$ npm run test:e2e
+# e2e 테스트
+npm run test:e2e
 
-# test coverage
-$ npm run test:cov
+# 테스트 커버리지 확인
+npm run test:cov
 ```
 
-## License
+---
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## 📝 기타
+
+* NestJS 공식 구조와 스타일을 준수
+* TypeScript 기반으로 안전한 타입 체킹
+* 개인 학습용 프로젝트로 실제 서비스와는 무관
