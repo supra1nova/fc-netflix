@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt'
 import { ConstVariable } from '../common/const/const-variable'
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager'
 import { UserService } from '../user/user.service'
+import { CreateUserDto } from '../user/dto/create-user.dto'
 
 @Injectable()
 export class AuthService {
@@ -16,17 +17,17 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
-    private readonly userService: UserService,
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
+    private readonly userService: UserService,
   ) {
   }
 
   // raw token -> 'Basic $token'
   async signUpUser(rawToken: string) {
-    const { email, password } = this.parseBasicToken(rawToken)
+    const createUserDto = this.parseBasicToken(rawToken)
 
-    return this.userService.createUser({ email, password })
+    return this.userService.createUser(createUserDto)
   }
 
   async signInUser(rawToken: string) {
@@ -147,6 +148,6 @@ export class AuthService {
 
     const [email, password] = tokenSplit
 
-    return { email, password }
+    return { email, password } as CreateUserDto
   }
 }
