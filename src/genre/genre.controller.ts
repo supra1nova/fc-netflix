@@ -20,7 +20,8 @@ import { ApiBearerAuth } from '@nestjs/swagger'
 @ApiBearerAuth()
 @UseInterceptors(ClassSerializerInterceptor)
 export class GenreController {
-  constructor(private readonly genreService: GenreService) {}
+  constructor(private readonly genreService: GenreService) {
+  }
 
   @Get()
   getManyGenre(@Query('name') name?: string) {
@@ -38,7 +39,7 @@ export class GenreController {
   }
 
   @Patch(':id')
-  update(@Param('id', new ParseIntPipe()) id: number, @Body() updateGenreDto: UpdateGenreDto) {
+  patchGenre(@Param('id', new ParseIntPipe()) id: number, @Body() updateGenreDto: UpdateGenreDto) {
     return this.genreService.updateGenre(+id, updateGenreDto)
   }
 
