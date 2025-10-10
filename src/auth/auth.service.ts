@@ -107,7 +107,7 @@ export class AuthService {
    * @param token string
    * @return true
    */
-  async tokenBlock(token: string) {
+  async blockToken(token: string) {
     const payload = this.jwtService.decode(token)
     if (!payload) {
       throw new BadRequestException('토큰이 존재하지 않습니다')

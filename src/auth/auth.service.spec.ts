@@ -283,7 +283,7 @@ describe('AuthService', () => {
       jest.spyOn(mockJwtService, 'decode').mockReturnValue(payload)
 
       // when
-      const result = await authService.tokenBlock(token)
+      const result = await authService.blockToken(token)
 
       // then
       expect(result).toBe(true)
@@ -301,7 +301,7 @@ describe('AuthService', () => {
       jest.spyOn(mockJwtService, 'decode').mockReturnValue(null)
 
       // when & then
-      await expect(authService.tokenBlock(token)).rejects.toThrow(BadRequestException)
+      await expect(authService.blockToken(token)).rejects.toThrow(BadRequestException)
 
       expect(mockJwtService.decode).toHaveBeenCalledWith(token)
     })
