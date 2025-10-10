@@ -55,12 +55,12 @@ describe('GenreController', () => {
       jest.spyOn(mockGenreService, 'findAllGenre').mockResolvedValue(genresWithLength)
 
       // when & then
-      expect(genreController.getManyGenre()).resolves.toEqual(genresWithLength)
+      await expect(genreController.getManyGenre()).resolves.toEqual(genresWithLength)
 
       expect(mockGenreService.findAllGenre).toHaveBeenCalled()
     })
 
-    it('should return genres contains specific names', () => {
+    it('should return genres contains specific names', async () => {
       // given
       const searchName = '1'
       const genres = [
@@ -75,7 +75,7 @@ describe('GenreController', () => {
       jest.spyOn(mockGenreService, 'findAllGenre').mockResolvedValue(filteredGenresWithLength)
 
       // when & then
-      expect(genreController.getManyGenre(searchName)).resolves.toEqual(filteredGenresWithLength)
+      await expect(genreController.getManyGenre(searchName)).resolves.toEqual(filteredGenresWithLength)
 
       expect(mockGenreService.findAllGenre).toHaveBeenCalled()
     })
@@ -90,7 +90,7 @@ describe('GenreController', () => {
       jest.spyOn(mockGenreService, 'findOneGenre').mockResolvedValue(genre)
 
       // when & then
-      expect(genreController.getOneGenre(id)).resolves.toEqual(genre)
+      await expect(genreController.getOneGenre(id)).resolves.toEqual(genre)
 
       expect(mockGenreService.findOneGenre).toHaveBeenCalledWith(id)
     })
@@ -105,7 +105,7 @@ describe('GenreController', () => {
       jest.spyOn(mockGenreService, 'createGenre').mockResolvedValue(genre)
 
       // when & then
-      expect(genreController.postGenre(createGenreDto)).resolves.toEqual(genre)
+      await expect(genreController.postGenre(createGenreDto)).resolves.toEqual(genre)
 
       expect(mockGenreService.createGenre).toHaveBeenCalledWith(createGenreDto)
     })
@@ -121,7 +121,7 @@ describe('GenreController', () => {
       jest.spyOn(mockGenreService, 'updateGenre').mockResolvedValue(genre)
 
       // when & then
-      expect(genreController.patchGenre(id, updateGenreDto)).resolves.toEqual(genre)
+      await expect(genreController.patchGenre(id, updateGenreDto)).resolves.toEqual(genre)
 
       expect(mockGenreService.updateGenre).toHaveBeenCalledWith(id, updateGenreDto)
     })
@@ -135,7 +135,7 @@ describe('GenreController', () => {
       jest.spyOn(mockGenreService, 'deleteGenre').mockResolvedValue(undefined)
 
       // when & then
-      expect(genreController.deleteGenre(id)).resolves.toBeUndefined()
+      await expect(genreController.deleteGenre(id)).resolves.toBeUndefined()
 
       expect(mockGenreService.deleteGenre).toHaveBeenCalledWith(id)
     })
