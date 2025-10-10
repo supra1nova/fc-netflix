@@ -48,7 +48,7 @@ export class AuthController {
   blockToken(
     @Body('token') token: string,
   ) {
-    return this.authService.tokenBlock(token)
+    return this.authService.blockToken(token)
   }
 
   // @UseGuards(AuthGuard('local'))

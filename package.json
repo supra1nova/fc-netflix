@@ -20,7 +20,10 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:user": "jest --testPathPattern=src/user",
     "test:user:watch": "jest --testPathPattern=src/user --watch",
-    "test:user:coverage": "jest --testPathPattern=src/user --coverage --collectCoverageFrom=src/user/**"
+    "test:user:cov": "jest --testPathPattern=src/user --coverage --collectCoverageFrom=src/user/**",
+    "test:auth": "jest --testPathPattern=src/auth",
+    "test:auth:watch": "jest --testPathPattern=src/auth --watch",
+    "test:auth:cov": "jest --testPathPattern=src/auth --coverage --collectCoverageFrom=src/auth/**"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^3.0.1",
