@@ -23,7 +23,10 @@
     "test:user:cov": "jest --testPathPattern=src/user --coverage --collectCoverageFrom=src/user/**",
     "test:auth": "jest --testPathPattern=src/auth",
     "test:auth:watch": "jest --testPathPattern=src/auth --watch",
-    "test:auth:cov": "jest --testPathPattern=src/auth --coverage --collectCoverageFrom=src/auth/**"
+    "test:auth:cov": "jest --testPathPattern=src/auth --coverage --collectCoverageFrom=src/auth/**",
+    "test:director": "jest --testPathPattern=src/director",
+    "test:director:watch": "jest --testPathPattern=src/director --watch",
+    "test:director:cov": "jest --testPathPattern=src/director --coverage --collectCoverageFrom=src/director/**"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^3.0.1",
