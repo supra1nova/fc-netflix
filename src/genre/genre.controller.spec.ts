@@ -32,7 +32,7 @@ describe('GenreController', () => {
     genreService = module.get<GenreService>(GenreService)
   })
 
-  afterEach(async () => {
+  afterEach(() => {
     jest.clearAllMocks()
   })
 

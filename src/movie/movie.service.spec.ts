@@ -45,7 +45,7 @@ describe('MovieService', () => {
     movieUserLikeRepository = unitRef.get(getRepositoryToken(MovieUserLike) as string)
   })
 
-  afterEach(async () => {
+  afterEach(() => {
     jest.clearAllMocks()
   })
 

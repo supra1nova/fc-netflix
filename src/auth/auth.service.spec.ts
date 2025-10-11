@@ -87,7 +87,7 @@ describe('AuthService', () => {
     userService = module.get<UserService>(UserService)
   })
 
-  afterEach(async () => {
+  afterEach(() => {
     jest.clearAllMocks()
   })
 

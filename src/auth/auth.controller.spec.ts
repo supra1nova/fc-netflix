@@ -30,7 +30,7 @@ describe('AuthController', () => {
     authService = module.get<AuthService>(AuthService)
   })
 
-  afterEach(async () => {
+  afterEach(() => {
     jest.clearAllMocks()
   })
 
