@@ -1,6 +1,6 @@
 import { TestBed, Mocked } from '@suites/unit'
 import { MovieService } from './movie.service'
-import { DataSource, In, QueryBuilder, QueryRunner, Repository, UpdateQueryBuilder, UpdateResult } from 'typeorm'
+import { DataSource, In, QueryRunner, Repository, UpdateQueryBuilder } from 'typeorm'
 import { Movie } from './entity/movie.entity'
 import { Genre } from '../genre/entities/genre.entity'
 import { Director } from '../director/entity/director.entity'
@@ -262,6 +262,7 @@ describe('MovieService', () => {
   })
 
   describe('processCreateMovie', () => {
+    /**  */
     let qr: jest.Mocked<QueryRunner>
     let createMovieDetail: jest.SpyInstance
     let createMovie: jest.SpyInstance
@@ -674,6 +675,7 @@ describe('MovieService', () => {
       const movie = { id: movieId, title: 'movie 1', likeCount: 0, dislikeCount: 0 } as Movie
       const user = { id: userId, email: 'user1@test.com' } as User
       const isLike = true
+      const likeType = isLike ? 'likeCount' : 'dislikeCount'
 
       jest.spyOn(qr.manager, 'findOneBy').mockResolvedValueOnce(movie)
       jest.spyOn(qr.manager, 'findOneBy').mockResolvedValueOnce(user)
@@ -694,7 +696,39 @@ describe('MovieService', () => {
       expect(qr.manager.findOneBy).toHaveBeenNthCalledWith(2, User, { id: userId })
       expect(qr.manager.findOne).toHaveBeenCalledWith(MovieUserLike, { where: { userId, movieId } })
       expect(insertMovieUserLike).toHaveBeenCalledWith(qr, movieId, userId, isLike)
-      expect(qr.manager.increment).toHaveBeenCalledWith(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1)
+      expect(qr.manager.increment).toHaveBeenCalledWith(Movie, { id: movieId }, likeType, 1)
+      expect(qr.manager.findOneBy).toHaveBeenLastCalledWith(MovieUserLike, { movie: { id: movieId }, user: { id: userId } })
+    })
+
+    it('should increase specific movie dislike count', async () => {
+      // given
+      const movieId = 1
+      const userId = 1
+      const movie = { id: movieId, title: 'movie 1', likeCount: 0, dislikeCount: 0 } as Movie
+      const user = { id: userId, email: 'user1@test.com' } as User
+      const isLike = false
+      const likeType = isLike ? 'likeCount' : 'dislikeCount'
+
+      jest.spyOn(qr.manager, 'findOneBy').mockResolvedValueOnce(movie)
+      jest.spyOn(qr.manager, 'findOneBy').mockResolvedValueOnce(user)
+      jest.spyOn(qr.manager, 'findOne').mockResolvedValue(null)
+
+      insertMovieUserLike.mockResolvedValue(undefined)
+
+      jest.spyOn(qr.manager, 'increment').mockResolvedValue(expect.anything())
+      jest.spyOn(qr.manager, 'findOneBy').mockResolvedValueOnce({ isLike })
+
+      // when
+      const result = await movieService.toggleMovieLike(movieId, userId, isLike, qr)
+
+      // then
+      expect(result).toEqual({ isLike })
+
+      expect(qr.manager.findOneBy).toHaveBeenNthCalledWith(1, Movie, { id: movieId })
+      expect(qr.manager.findOneBy).toHaveBeenNthCalledWith(2, User, { id: userId })
+      expect(qr.manager.findOne).toHaveBeenCalledWith(MovieUserLike, { where: { userId, movieId } })
+      expect(insertMovieUserLike).toHaveBeenCalledWith(qr, movieId, userId, isLike)
+      expect(qr.manager.increment).toHaveBeenCalledWith(Movie, { id: movieId }, likeType, 1)
       expect(qr.manager.findOneBy).toHaveBeenLastCalledWith(MovieUserLike, { movie: { id: movieId }, user: { id: userId } })
     })
 
@@ -706,6 +740,7 @@ describe('MovieService', () => {
       const user = { id: userId, email: 'user1@test.com' } as User
       const isLike = true
       const likeRecord = { movieId, userId, isLike } as MovieUserLike
+      const likeType = isLike ? 'likeCount' : 'dislikeCount'
 
       jest.spyOn(qr.manager, 'findOneBy').mockResolvedValueOnce(movie)
       jest.spyOn(qr.manager, 'findOneBy').mockResolvedValueOnce(user)
@@ -726,11 +761,44 @@ describe('MovieService', () => {
       expect(qr.manager.findOneBy).toHaveBeenNthCalledWith(2, User, { id: userId })
       expect(qr.manager.findOne).toHaveBeenCalledWith(MovieUserLike, { where: { userId, movieId } })
       expect(deleteMovieUserLike).toHaveBeenCalledWith(qr, movieId, userId)
-      expect(qr.manager.decrement).toHaveBeenCalledWith(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1)
+      expect(qr.manager.decrement).toHaveBeenCalledWith(Movie, { id: movieId }, likeType, 1)
       expect(qr.manager.findOneBy).toHaveBeenLastCalledWith(MovieUserLike, { movie: { id: movieId }, user: { id: userId } })
     })
 
-    it('should increase/decrease specific movie like/dislike count each other', async () => {
+    it('should decrease specific movie dislike count if requested again', async () => {
+      // given
+      const movieId = 1
+      const userId = 1
+      const movie = { id: movieId, title: 'movie 1', likeCount: 0, dislikeCount: 1 } as Movie
+      const user = { id: userId, email: 'user1@test.com' } as User
+      const isLike = false
+      const likeRecord = { movieId, userId, isLike } as MovieUserLike
+      const likeType = isLike ? 'likeCount' : 'dislikeCount'
+
+      jest.spyOn(qr.manager, 'findOneBy').mockResolvedValueOnce(movie)
+      jest.spyOn(qr.manager, 'findOneBy').mockResolvedValueOnce(user)
+      jest.spyOn(qr.manager, 'findOne').mockResolvedValue(likeRecord)
+
+      deleteMovieUserLike.mockResolvedValue(undefined)
+
+      jest.spyOn(qr.manager, 'decrement').mockResolvedValue(expect.anything())
+      jest.spyOn(qr.manager, 'findOneBy').mockResolvedValueOnce(null)
+
+      // when
+      const result = await movieService.toggleMovieLike(movieId, userId, isLike, qr)
+
+      // then
+      expect(result).toEqual({ isLike: null })
+
+      expect(qr.manager.findOneBy).toHaveBeenNthCalledWith(1, Movie, { id: movieId })
+      expect(qr.manager.findOneBy).toHaveBeenNthCalledWith(2, User, { id: userId })
+      expect(qr.manager.findOne).toHaveBeenCalledWith(MovieUserLike, { where: { userId, movieId } })
+      expect(deleteMovieUserLike).toHaveBeenCalledWith(qr, movieId, userId)
+      expect(qr.manager.decrement).toHaveBeenCalledWith(Movie, { id: movieId }, likeType, 1)
+      expect(qr.manager.findOneBy).toHaveBeenLastCalledWith(MovieUserLike, { movie: { id: movieId }, user: { id: userId } })
+    })
+
+    it('should increase like and decrease dislike count specific movie', async () => {
       // given
       const movieId = 1
       const userId = 1
@@ -759,8 +827,42 @@ describe('MovieService', () => {
       expect(qr.manager.findOneBy).toHaveBeenNthCalledWith(2, User, { id: userId })
       expect(qr.manager.findOne).toHaveBeenCalledWith(MovieUserLike, { where: { userId, movieId } })
       expect(updateMovieUserLike).toHaveBeenCalledWith(qr, isLike, userId, movieId)
-      expect(qr.manager.increment).toHaveBeenCalledWith(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1)
-      expect(qr.manager.decrement).toHaveBeenCalledWith(Movie, { id: movieId }, !isLike ? 'likeCount' : 'dislikeCount', 1)
+      expect(qr.manager.increment).toHaveBeenCalledWith(Movie, { id: movieId }, 'dislikeCount', 1)
+      expect(qr.manager.decrement).toHaveBeenCalledWith(Movie, { id: movieId }, 'likeCount', 1)
+      expect(qr.manager.findOneBy).toHaveBeenLastCalledWith(MovieUserLike, { movie: { id: movieId }, user: { id: userId } })
+    })
+
+    it('should increase dislike and decrease like count specific movie', async () => {
+      // given
+      const movieId = 1
+      const userId = 1
+      const movie = { id: movieId, title: 'movie 1', likeCount: 0, dislikeCount: 1 } as Movie
+      const user = { id: userId, email: 'user1@test.com' } as User
+      const isLike = true
+      const likeRecord = { movieId, userId, isLike } as MovieUserLike
+
+      jest.spyOn(qr.manager, 'findOneBy').mockResolvedValueOnce(movie)
+      jest.spyOn(qr.manager, 'findOneBy').mockResolvedValueOnce(user)
+      jest.spyOn(qr.manager, 'findOne').mockResolvedValue({ ...likeRecord, isLike: false })
+
+      updateMovieUserLike.mockResolvedValue(undefined)
+
+      jest.spyOn(qr.manager, 'increment').mockResolvedValue(expect.anything())
+      jest.spyOn(qr.manager, 'decrement').mockResolvedValue(expect.anything())
+      jest.spyOn(qr.manager, 'findOneBy').mockResolvedValueOnce(likeRecord)
+
+      // when
+      const result = await movieService.toggleMovieLike(movieId, userId, isLike, qr)
+
+      // then
+      expect(result).toEqual({ isLike })
+
+      expect(qr.manager.findOneBy).toHaveBeenNthCalledWith(1, Movie, { id: movieId })
+      expect(qr.manager.findOneBy).toHaveBeenNthCalledWith(2, User, { id: userId })
+      expect(qr.manager.findOne).toHaveBeenCalledWith(MovieUserLike, { where: { userId, movieId } })
+      expect(updateMovieUserLike).toHaveBeenCalledWith(qr, isLike, userId, movieId)
+      expect(qr.manager.increment).toHaveBeenCalledWith(Movie, { id: movieId }, 'likeCount', 1)
+      expect(qr.manager.decrement).toHaveBeenCalledWith(Movie, { id: movieId }, 'dislikeCount', 1)
       expect(qr.manager.findOneBy).toHaveBeenLastCalledWith(MovieUserLike, { movie: { id: movieId }, user: { id: userId } })
     })
 
