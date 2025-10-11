@@ -74,11 +74,11 @@ export class MovieController {
     status: 401,
     description: '토큰이 만료 되었을때.',
   })
-  getListMovie(
+  getMovieList(
     @Query() dto: GetMoviesDto,
     @UserId() userId?: number,
   ) {
-    return this.movieService.findListMovie(dto, userId)
+    return this.movieService.findMovieList(dto, userId)
   }
 
   @Get('recent')
@@ -88,15 +88,15 @@ export class MovieController {
   // @CacheKey 가 별도 존재시 아무리 UseInterceptor와 CacehInterceptor 를 이용해도 지정된 키를 이용해 저장됨
   @CacheKey('getMovieRecent')
   @CacheTTL(1000)
-  getRecentMovies() {
+  getRecentMovieList() {
     console.log('getMoviesRecent() 실행')
-    return this.movieService.findRecentListMovie()
+    return this.movieService.findRecentMovieList()
   }
 
   @Get(':id')
   @Public()
   // getOneMovie(@Param('id', ParseIntPipe) id: number) {
-  getOneMovie(
+  getMovie(
     @Param(
       'id',
       new ParseIntPipe({
@@ -107,7 +107,7 @@ export class MovieController {
     )
     id: number,
   ) {
-    return this.movieService.findOneMovie(id)
+    return this.movieService.findMovie(id)
   }
 
   @Post()
@@ -118,7 +118,7 @@ export class MovieController {
     @UserId() userId: number,
     @QR() qr: QueryRunner,
   ) {
-    return this.movieService.createMovie(createMovieDto, userId, qr)
+    return this.movieService.processCreateMovie(createMovieDto, userId, qr)
   }
 
   /*
@@ -249,13 +249,13 @@ export class MovieController {
   @Patch(':id')
   @RBAC(Role.ADMIN)
   patchMovie(@Param('id', new ParseIntPipe()) id: number, @Body() updateMovieDto: UpdateMovieDto) {
-    return this.movieService.updateMovie(id, updateMovieDto)
+    return this.movieService.processUpdateMovie(id, updateMovieDto)
   }
 
   @Delete(':id')
   @RBAC(Role.ADMIN)
   deleteMovie(@Param('id', new ParseIntPipe()) id: number) {
-    return this.movieService.deleteMovie(id)
+    return this.movieService.processDeleteMovie(id)
   }
 
   @Public()
