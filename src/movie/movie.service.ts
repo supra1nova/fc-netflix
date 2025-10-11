@@ -24,8 +24,6 @@ export class MovieService {
     private readonly genreRepository: Repository<Genre>,
     @InjectRepository(Director)
     private readonly directorRepository: Repository<Director>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
     @InjectRepository(MovieUserLike)
     private readonly movieUserLikeRepository: Repository<MovieUserLike>,
     @Inject(CACHE_MANAGER)
@@ -36,22 +34,61 @@ export class MovieService {
   ) {
   }
 
-  async findListMovie(dto: GetMoviesDto, userId?: number) {
-    const { title } = dto
+  async findRecentMovieList() {
+    const cachedData = await this.cacheManager.get('RECENT_MOVIE')
 
-    let qb = this.movieRepository
+    if (cachedData) {
+      console.log('캐쉬 가져옴')
+      return cachedData
+    }
+
+    const data = await this.movieRepository.find({
+      order: {
+        createdAt: 'DESC',
+      },
+      take: 10,
+    })
+
+    // ttl 을 모듈에서 적용했더라도 서비스 내에서 직접 적용하면 override되어 적용됨
+    // await this.cacheManager.set('RECENT_MOVIE', data, 3000)
+    // in memory cache의 경우 ttl 을 명시하지 않거나 null/undefined로 표기한 경우 무제한 처리
+    // await this.cacheManager.set('RECENT_MOVIE', data, undefined)
+    await this.cacheManager.set('RECENT_MOVIE', data)
+
+    return data
+  }
+
+  // 테스트 커버리지에 들어가지 않도록 설정할 수 있음 -> /* istanbul ignore next */
+  /* istanbul ignore next */
+  getMoviesQb() {
+    return this.movieRepository
       .createQueryBuilder('movie')
       .leftJoinAndSelect('movie.director', 'director')
       .leftJoinAndSelect('movie.genres', 'genres')
+  }
+
+  /* istanbul ignore next */
+  async getLikedMoviesQb(movieIds: number[], userId: number) {
+    return this.movieUserLikeRepository.createQueryBuilder('mul')
+      .leftJoinAndSelect('mul.user', 'user')
+      .leftJoinAndSelect('mul.movie', 'movie')
+      .where('movie.id IN (:...movieIds)', { movieIds })
+      .andWhere('user.id = :userId', { userId })
+      .getMany()
+  }
+
+  async findMovieList(dto: GetMoviesDto, userId?: number) {
+    const { title } = dto
+
+    let qb = this.getMoviesQb()
 
     if (title) {
-      qb = qb.andWhere('movie.title LIKE :title', { title: `%${title}%` })
+      qb = qb.where('movie.title LIKE :title', { title: `%${title}%` })
     }
 
     // 당연하게도 static 으로 추출해 사용할 수 있으나, 굳이 page형과 cursor형 pagination 을 module 로 사용하기 위해 적용
     // CommonUtil.ApplyPagePaginationParamsToQb(qb, dto)
     // this.commonService.applyPagePaginationParamsToQb(qb, dto)
-
     this.commonService.applyCursorPaginationParamsToQb(qb, dto)
 
     let [data, count] = await qb.getManyAndCount()
@@ -61,12 +98,7 @@ export class MovieService {
     if (userId) {
       const movieIds = data.map((movie) => movie.id)
 
-      const likedMovies = movieIds.length < 1 ? [] : await this.movieUserLikeRepository.createQueryBuilder('mul')
-        .leftJoinAndSelect('mul.user', 'user')
-        .leftJoinAndSelect('mul.movie', 'movie')
-        .where('movie.id IN (:...movieIds)', { movieIds })
-        .andWhere('user.id = :userId', { userId })
-        .getMany()
+      const likedMovies = await this.getLikedMoviesQb(movieIds, userId)
 
       /*
       const likedMovieMap = {};
@@ -103,34 +135,9 @@ export class MovieService {
     }
   }
 
-  async findRecentListMovie() {
-    // await this.cacheManager.set('number', 10)
-    // const data = await this.cacheManager.get('number')
-    const cachedData = await this.cacheManager.get('RECENT_MOVIE')
-
-    if (cachedData) {
-      console.log('캐쉬 가져옴')
-      return cachedData
-    }
-
-    const data = await this.movieRepository.find({
-      order: {
-        createdAt: 'DESC',
-      },
-      take: 10,
-    })
-
-    // ttl 을 모듈에서 적용했더라도 서비스 내에서 직접 적용하면 override되어 적용됨
-    // await this.cacheManager.set('RECENT_MOVIE', data, 3000)
-    // in memory cache의 경우 ttl 을 명시하지 않거나 null/undefined로 표기한 경우 무제한 처리
-    // await this.cacheManager.set('RECENT_MOVIE', data, undefined)
-    await this.cacheManager.set('RECENT_MOVIE', data)
-
-    return data
-  }
-
-  findOneMovie(id: number) {
-    const qb = this.movieRepository
+  /* istanbul ignore next */
+  async findMovieDetail(id: number) {
+    return this.movieRepository
       .createQueryBuilder('movie')
       .leftJoinAndSelect('movie.director', 'director')
       .leftJoinAndSelect('movie.genres', 'genres')
@@ -138,8 +145,17 @@ export class MovieService {
       .leftJoinAndSelect('movie.creator', 'creator')
       .where('movie.id = :id')
       .setParameter('id', id)
+      .getOne()
+  }
 
-    return qb.getOne()
+  async findMovie(id: number) {
+    const movie = await this.findMovieDetail(id)
+
+    if (!movie) {
+      throw new NotFoundException('movie not found.')
+    }
+
+    return movie
   }
 
   async createMovie(createMovieDto: CreateMovieDto, userId: number, qr: QueryRunner) {
@@ -271,7 +287,7 @@ export class MovieService {
     try {
       const { genreIds, detail, directorId, ...movieRest } = updateMovieDto
 
-      const movie = await this.findOneMovie(id)
+      const movie = await this.findMovie(id)
       if (!movie) {
         throw new NotFoundException('no movie id found')
       }
@@ -323,7 +339,7 @@ export class MovieService {
 
       await qr.commitTransaction()
 
-      return await this.findOneMovie(id)
+      return await this.findMovie(id)
     } catch (e) {
       await qr.rollbackTransaction()
       throw e
@@ -338,7 +354,7 @@ export class MovieService {
     await qr.startTransaction()
 
     try {
-      const movie = await this.findOneMovie(id)
+      const movie = await this.findMovie(id)
       if (!movie) {
         throw new NotFoundException('no movie id found')
       }

@@ -78,7 +78,7 @@ export class MovieController {
     @Query() dto: GetMoviesDto,
     @UserId() userId?: number,
   ) {
-    return this.movieService.findListMovie(dto, userId)
+    return this.movieService.findMovieList(dto, userId)
   }
 
   @Get('recent')
@@ -90,7 +90,7 @@ export class MovieController {
   @CacheTTL(1000)
   getRecentMovies() {
     console.log('getMoviesRecent() 실행')
-    return this.movieService.findRecentListMovie()
+    return this.movieService.findRecentMovieList()
   }
 
   @Get(':id')
@@ -107,7 +107,7 @@ export class MovieController {
     )
     id: number,
   ) {
-    return this.movieService.findOneMovie(id)
+    return this.movieService.findMovie(id)
   }
 
   @Post()
