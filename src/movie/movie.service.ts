@@ -441,6 +441,37 @@ export class MovieService {
     }
   }
 
+  /* istanbul ignore next */
+  async deleteMovieUserLike(qr: QueryRunner, movieId: number, userId: number) {
+    await qr.manager
+      .createQueryBuilder()
+      .delete()
+      .from(MovieUserLike)
+      .where({ movie: { id: movieId }, user: { id: userId } })
+      .execute()
+  }
+
+  /* istanbul ignore next */
+  async updateMovieUserLike(qr: QueryRunner, isLike: boolean, userId: number, movieId: number) {
+    await qr.manager
+      .createQueryBuilder()
+      .update(MovieUserLike)
+      .set({ isLike })
+      .where('userId = :userId', { userId })
+      .andWhere('movieId = :movieId', { movieId })
+      .execute()
+  }
+
+  /* istanbul ignore next */
+  async insertMovieUserLike(qr: QueryRunner, movieId: number, userId: number, isLike: boolean) {
+    await qr.manager
+      .createQueryBuilder()
+      .insert()
+      .into(MovieUserLike)
+      .values({ movie: { id: movieId }, user: { id: userId }, isLike })
+      .execute()
+  }
+
   async toggleMovieLike(movieId: number, userId: number, isLike: boolean, qr: QueryRunner) {
     const movie = await qr.manager.findOneBy(Movie, { id: movieId })
 
@@ -458,33 +489,17 @@ export class MovieService {
 
     if (likeRecord) {
       if (isLike === likeRecord.isLike) {
-        await qr.manager
-          .createQueryBuilder()
-          .delete()
-          .from(MovieUserLike)
-          .where({ movie: { id: movieId }, user: { id: userId } })
-          .execute()
+        await this.deleteMovieUserLike(qr, movieId, userId)
 
         await qr.manager.decrement(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1)
       } else {
-        await qr.manager
-          .createQueryBuilder()
-          .update(MovieUserLike)
-          .set({ isLike })
-          .where('userId = :userId', { userId })
-          .andWhere('movieId = :movieId', { movieId })
-          .execute()
+        await this.updateMovieUserLike(qr, isLike, userId, movieId)
 
         await qr.manager.increment(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1)
         await qr.manager.decrement(Movie, { id: movieId }, !isLike ? 'likeCount' : 'dislikeCount', 1)
       }
     } else {
-      await qr.manager
-        .createQueryBuilder()
-        .insert()
-        .into(MovieUserLike)
-        .values({ movie: { id: movieId }, user: { id: userId }, isLike })
-        .execute()
+      await this.insertMovieUserLike(qr, movieId, userId, isLike)
 
       await qr.manager.increment(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1)
     }
