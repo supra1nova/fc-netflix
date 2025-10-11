@@ -74,7 +74,7 @@ export class MovieController {
     status: 401,
     description: '토큰이 만료 되었을때.',
   })
-  getListMovie(
+  getMovieList(
     @Query() dto: GetMoviesDto,
     @UserId() userId?: number,
   ) {
@@ -88,7 +88,7 @@ export class MovieController {
   // @CacheKey 가 별도 존재시 아무리 UseInterceptor와 CacehInterceptor 를 이용해도 지정된 키를 이용해 저장됨
   @CacheKey('getMovieRecent')
   @CacheTTL(1000)
-  getRecentMovies() {
+  getRecentMovieList() {
     console.log('getMoviesRecent() 실행')
     return this.movieService.findRecentMovieList()
   }
@@ -96,7 +96,7 @@ export class MovieController {
   @Get(':id')
   @Public()
   // getOneMovie(@Param('id', ParseIntPipe) id: number) {
-  getOneMovie(
+  getMovie(
     @Param(
       'id',
       new ParseIntPipe({
@@ -118,7 +118,7 @@ export class MovieController {
     @UserId() userId: number,
     @QR() qr: QueryRunner,
   ) {
-    return this.movieService.createMovie(createMovieDto, userId, qr)
+    return this.movieService.processCreateMovie(createMovieDto, userId, qr)
   }
 
   /*

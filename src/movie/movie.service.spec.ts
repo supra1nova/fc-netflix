@@ -1,6 +1,6 @@
 import { TestBed, Mocked } from '@suites/unit'
 import { MovieService } from './movie.service'
-import { DataSource, Repository } from 'typeorm'
+import { DataSource, In, QueryRunner, Repository } from 'typeorm'
 import { Movie } from './entity/movie.entity'
 import { Genre } from '../genre/entities/genre.entity'
 import { Director } from '../director/entity/director.entity'
@@ -11,6 +11,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { GetMoviesDto } from './dto/get-movies.dto'
 import { NotFoundException } from '@nestjs/common'
+import { CreateMovieDto } from './dto/create-movie.dto'
 
 describe('MovieService', () => {
   let movieService: MovieService
@@ -249,6 +250,140 @@ describe('MovieService', () => {
       await expect(movieService.findMovie(id)).rejects.toThrow(NotFoundException)
 
       expect(movieService.findMovieDetail).toHaveBeenCalledWith(id)
+    })
+  })
+
+  describe('processCreateMovie', () => {
+    let qr: jest.Mocked<QueryRunner>
+    let createMovieDetail: jest.SpyInstance
+    let createMovie: jest.SpyInstance
+    let createMovieGenre: jest.SpyInstance
+    let renameMovieFile: jest.SpyInstance
+
+    const genres = [
+      { id: 1, name: 'genre 1', description: 'description1' },
+      { id: 2, name: 'genre 2', description: 'description2' },
+      { id: 3, name: 'genre 3', description: 'description3' },
+      { id: 4, name: 'genre 4', description: 'description4' },
+    ]
+
+    beforeEach(() => {
+      qr = {
+        manager: {
+          findOne: jest.fn(),
+          findOneBy: jest.fn(),
+          find: jest.fn(),
+        },
+      } as any as jest.Mocked<QueryRunner>
+      createMovieDetail = jest.spyOn(movieService, 'createMovieDetail')
+      createMovie = jest.spyOn(movieService, 'createMovie')
+      createMovieGenre = jest.spyOn(movieService, 'createMovieGenre')
+      renameMovieFile = jest.spyOn(movieService, 'renameMovieFile')
+    })
+
+    it('should return movie after creation', async () => {
+      // given
+      const genreIds = [1, 2]
+      const directorId = 1
+      const detail = 'detail 1'
+      const movieFileName = 'movieFileName1'
+      const createMovieDto = { genreIds, detail, directorId, movieFileName } as CreateMovieDto
+      const userId = 1
+      const detailId = 1
+      const movieId = 1
+      const movie = { ...createMovieDto, id: movieId } as unknown as Movie
+      const insertResult = { identifiers: [{ id: 1 }] }
+
+      const filteredGenreList = genres.filter(genre => genreIds.includes(genre.id)) as Genre[]
+      const director = { name: 'director1', dob: new Date(1990, 1, 1) } as Director
+
+      jest.spyOn(qr.manager, 'find').mockResolvedValue(filteredGenreList)
+      jest.spyOn(qr.manager, 'findOneBy').mockResolvedValueOnce(director)
+
+      createMovieDetail.mockResolvedValue(insertResult)
+      createMovie.mockResolvedValue(insertResult)
+      createMovieGenre.mockResolvedValue(undefined)
+      renameMovieFile.mockResolvedValue(undefined)
+
+      jest.spyOn(qr.manager, 'findOne').mockResolvedValueOnce(movie)
+
+      // when
+      const result = await movieService.processCreateMovie(createMovieDto, userId, qr)
+
+      // then
+      expect(result).toEqual(movie)
+
+      expect(qr.manager.find).toHaveBeenCalledWith(Genre, { where: { id: In(genreIds) } })
+      expect(qr.manager.findOneBy).toHaveBeenCalledWith(Director, { id: directorId })
+      expect(movieService.createMovieDetail).toHaveBeenCalledWith(qr, detail)
+      expect(movieService.createMovie).toHaveBeenCalledWith(createMovieDto, qr, detailId, director, userId, movieFileName)
+      expect(movieService.createMovieGenre).toHaveBeenCalledWith(qr, movieId, genreIds)
+      /** 필요한 경우 임의로 타입만 맞다면 지나가도록 세팅 가능 */
+      expect(movieService.renameMovieFile).toHaveBeenCalledWith(expect.any(String), expect.any(String))
+      expect(qr.manager.findOne).toHaveBeenCalledWith(
+        Movie,
+        {
+          where: { id: movieId },
+          relations: ['detail', 'director', 'genres'],
+        },
+      )
+    })
+
+    it('should throw NotFoundException if cannot find any of genres for  creation', async () => {
+      // given
+      const genreIds = [99, 100]
+      const directorId = 1
+      const detail = 'detail 1'
+      const movieFileName = 'movieFileName1'
+      const createMovieDto = { genreIds, detail, directorId, movieFileName } as CreateMovieDto
+      const userId = 1;
+
+      (qr.manager.find as any).mockResolvedValue([])
+
+      // when & then
+      await expect(movieService.processCreateMovie(createMovieDto, userId, qr)).rejects.toThrow(NotFoundException)
+
+      expect(qr.manager.find).toHaveBeenCalledWith(Genre, { where: { id: In(genreIds) } })
+    })
+
+    it('should throw NotFoundException if cannot find some of genres for  creation', async () => {
+      // given
+      const genreIds = [1, 99, 100]
+      const directorId = 1
+      const detail = 'detail 1'
+      const movieFileName = 'movieFileName1'
+      const createMovieDto = { genreIds, detail, directorId, movieFileName } as CreateMovieDto
+      const userId = 1
+
+      const filteredGenreList = genres.filter(genre => genreIds.includes(genre.id)) as Genre[]
+
+      (qr.manager.find as any).mockResolvedValue(filteredGenreList)
+
+      // when & then
+      await expect(movieService.processCreateMovie(createMovieDto, userId, qr)).rejects.toThrow(NotFoundException)
+
+      expect(qr.manager.find).toHaveBeenCalledWith(Genre, { where: { id: In(genreIds) } })
+    })
+
+    it('should throw NotFoundException if cannot find director for creation', async () => {
+      // given
+      const genreIds = [1, 2]
+      const directorId = 1
+      const detail = 'detail 1'
+      const movieFileName = 'movieFileName1'
+      const createMovieDto = { genreIds, detail, directorId, movieFileName } as CreateMovieDto
+      const userId = 1
+
+      const filteredGenreList = genres.filter(genre => genreIds.includes(genre.id)) as Genre[]
+
+      jest.spyOn(qr.manager, 'find').mockResolvedValue(filteredGenreList)
+      jest.spyOn(qr.manager, 'findOneBy').mockResolvedValue(null)
+
+      // when & then
+      await expect(movieService.processCreateMovie(createMovieDto, userId, qr)).rejects.toThrow(NotFoundException)
+
+      expect(qr.manager.find).toHaveBeenCalledWith(Genre, { where: { id: In(genreIds) } })
+      expect(qr.manager.findOneBy).toHaveBeenCalledWith(Director, { id: directorId })
     })
   })
 })

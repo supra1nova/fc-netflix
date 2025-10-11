@@ -158,8 +158,51 @@ export class MovieService {
     return movie
   }
 
-  async createMovie(createMovieDto: CreateMovieDto, userId: number, qr: QueryRunner) {
-    const { genreIds, detail, directorId, ...movieRest } = createMovieDto
+
+  /* istanbul ignore next */
+  async createMovieDetail(qr: QueryRunner, detail: string) {
+    // createQueryBuilder 의 insert를 사용하는 경우 createQueryRunner.manager 가 붙어도, 자체적으로 엔티티를 명시하고 있으므로 추가할 필요 없음
+    return await qr.manager
+      .createQueryBuilder()
+      .insert()
+      .into(MovieDetail)
+      .values({ detail })
+      .execute()
+  }
+
+  /* istanbul ignore next */
+  async createMovie(movieRest: CreateMovieDto, qr: QueryRunner, detailId: number, director: Director, userId: number, filename: string) {
+    return await qr.manager
+      .createQueryBuilder()
+      .insert()
+      .into(Movie)
+      .values({
+        ...movieRest,
+        detail: { id: detailId },
+        director,
+        creator: { id: userId },
+        movieFilePath: filename,
+      })
+      .execute()
+  }
+
+  /* istanbul ignore next */
+  async createMovieGenre(qr: QueryRunner, movieId: number, genreIds: number[]) {
+    // 중간 테이블에 테이터 삽입
+    return await qr.manager
+      .createQueryBuilder()
+      .relation(Movie, 'genres')
+      .of(movieId)
+      .add(genreIds)
+  }
+
+  /* istanbul ignore next */
+  async renameMovieFile(tempMovieFilePath: string, newMovieFilePath: string) {
+    await rename(tempMovieFilePath, newMovieFilePath)
+  }
+
+  async processCreateMovie(createMovieDto: CreateMovieDto, userId: number, qr: QueryRunner) {
+    const { genreIds, detail, directorId } = createMovieDto
 
     // transaction 적용을 위해서는 개별 repository가 아니라 createQueryRunner.manager 를 이용해야 하며, 메서드의 첫번째 인수에 사용할 entity를 명시 필요(메서드에 따라 다르니 확인 필요)
     const genres = await qr.manager.find(Genre, { where: { id: In(genreIds) } })
@@ -177,42 +220,33 @@ export class MovieService {
       throw new NotFoundException('director not found')
     }
 
-    // createQueryBuilder 의 insert를 사용하는 경우 createQueryRunner.manager 가 붙어도, 자체적으로 엔티티를 명시하고 있으므로 추가할 필요 없음
-    const detailInsertResult = await qr.manager
-      .createQueryBuilder()
-      .insert()
-      .into(MovieDetail)
-      .values({ detail })
-      .execute()
-    const detailId = detailInsertResult.identifiers[0].id
+    const detailInsertResult = await this.createMovieDetail(qr, detail)
+    const detailId: number = detailInsertResult.identifiers[0].id
 
     const filename = createMovieDto.movieFileName
 
-    const movieInsertResult = await qr.manager
-      .createQueryBuilder()
-      .insert()
-      .into(Movie)
-      .values({
-        detail: { id: detailId },
-        director,
-        creator: { id: userId },
-        movieFilePath: filename,
-        ...movieRest,
-      })
-      .execute()
+    const movieInsertResult = await this.createMovie(createMovieDto, qr, detailId, director, userId, filename)
     const movieId = movieInsertResult.identifiers[0].id
 
-    await qr.manager.createQueryBuilder().relation(Movie, 'genres').of(movieId).add(genreIds)
+    await this.createMovieGenre(qr, movieId, genreIds)
 
     const tempMovieFilePath = join(process.cwd(), 'public', 'temp', filename)
     const newMovieFilePath = join(process.cwd(), 'public', 'movie', filename)
 
-    // transaction 영향이 없는 곳(다른 로직 실행 후) 에서 실행
-    await rename(tempMovieFilePath, newMovieFilePath)
+    // transaction 영향이 없는 부분(다른 로직 실행 후) 에서 실행
+    await this.renameMovieFile(tempMovieFilePath, newMovieFilePath)
 
-    return await qr.manager.findOne(Movie, { where: { id: movieId }, relations: ['detail', 'director', 'genres'] })
+    return await qr.manager
+      .findOne(
+        Movie,
+        {
+          where: { id: movieId },
+          relations: ['detail', 'director', 'genres'],
+        }
+      )
   }
 
+  /* istanbul ignore next */
   async createDummyMovies(round: number) {
     const movieCount = await this.movieRepository.count()
     if (movieCount > 10) {
