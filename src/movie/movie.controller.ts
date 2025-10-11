@@ -249,7 +249,7 @@ export class MovieController {
   @Patch(':id')
   @RBAC(Role.ADMIN)
   patchMovie(@Param('id', new ParseIntPipe()) id: number, @Body() updateMovieDto: UpdateMovieDto) {
-    return this.movieService.updateMovie(id, updateMovieDto)
+    return this.movieService.processUpdateMovie(id, updateMovieDto)
   }
 
   @Delete(':id')

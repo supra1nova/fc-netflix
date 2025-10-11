@@ -158,7 +158,6 @@ export class MovieService {
     return movie
   }
 
-
   /* istanbul ignore next */
   async createMovieDetail(qr: QueryRunner, detail: string) {
     // createQueryBuilder 의 insert를 사용하는 경우 createQueryRunner.manager 가 붙어도, 자체적으로 엔티티를 명시하고 있으므로 추가할 필요 없음
@@ -242,10 +241,11 @@ export class MovieService {
         {
           where: { id: movieId },
           relations: ['detail', 'director', 'genres'],
-        }
+        },
       )
   }
 
+  // dummy 데이터 생성 함수
   /* istanbul ignore next */
   async createDummyMovies(round: number) {
     const movieCount = await this.movieRepository.count()
@@ -313,7 +313,32 @@ export class MovieService {
     return `create dummy movie processed successfully`
   }
 
-  async updateMovie(id: number, updateMovieDto: UpdateMovieDto) {
+  /* istanbul ignore next */
+  updateMovie(qr: QueryRunner, movieRest: UpdateMovieDto, id: number) {
+    return qr.manager
+      .createQueryBuilder()
+      .update(Movie)
+      .set({ ...movieRest })
+      .where('id = :id', { id })
+  }
+
+  /* istanbul ignore next */
+  async updateMovieDetail(qr: QueryRunner, detail: string, movie: Movie) {
+    // createQueryBuilder 의 update 사용하는 경우 update 메서드의 첫번째 인수는 entity 가 필수, 두번째 인수는 alias 로 선택
+    await qr.manager
+      .createQueryBuilder()
+      .update(MovieDetail)
+      .set({ detail })
+      .where('id = :id', { id: movie.detail.id })
+      .execute()
+  }
+
+  /* istanbul ignore next */
+  async updateMovieGenreRelation(qr: QueryRunner, id: number, genreIds: number[]) {
+    await qr.manager.createQueryBuilder().relation(Movie, 'genres').of(id).set(genreIds)
+  }
+
+  async processUpdateMovie(id: number, updateMovieDto: UpdateMovieDto) {
     const qr = this.datasource.createQueryRunner()
     await qr.connect()
     await qr.startTransaction()
@@ -339,7 +364,7 @@ export class MovieService {
         }
 
         // relation.of.set 의 경우 관련 데이터를 다 지우고 새로 등록하므로, 특정 데이터를 넣고 지우는 addAndRemove 보다 오히려 깔끔하다고 볼 수 있음
-        await qr.manager.createQueryBuilder().relation(Movie, 'genres').of(id).set(genreIds)
+        await this.updateMovieGenreRelation(qr, id, genreIds)
       }
 
       if (directorId) {
@@ -350,20 +375,10 @@ export class MovieService {
       }
 
       if (detail) {
-        // createQueryBuilder 의 update 사용하는 경우 update 메서드의 첫번째 인수는 entity 가 필수, 두번째 인수는 alias 로 선택
-        await qr.manager
-          .createQueryBuilder()
-          .update(MovieDetail)
-          .set({ detail })
-          .where('id = :id', { id: movie.detail.id })
-          .execute()
+        await this.updateMovieDetail(qr, detail, movie)
       }
 
-      let qb = qr.manager
-        .createQueryBuilder()
-        .update(Movie)
-        .set({ ...movieRest })
-        .where('id = :id', { id })
+      let qb = this.updateMovie(qr, { ...movieRest }, id)
 
       if (directorId) {
         qb = qb.set({ director: { id: directorId } })

@@ -1,6 +1,6 @@
 import { TestBed, Mocked } from '@suites/unit'
 import { MovieService } from './movie.service'
-import { DataSource, In, QueryRunner, Repository } from 'typeorm'
+import { DataSource, In, QueryRunner, Repository, UpdateQueryBuilder } from 'typeorm'
 import { Movie } from './entity/movie.entity'
 import { Genre } from '../genre/entities/genre.entity'
 import { Director } from '../director/entity/director.entity'
@@ -12,6 +12,7 @@ import { getRepositoryToken } from '@nestjs/typeorm'
 import { GetMoviesDto } from './dto/get-movies.dto'
 import { NotFoundException } from '@nestjs/common'
 import { CreateMovieDto } from './dto/create-movie.dto'
+import { UpdateMovieDto } from './dto/update-movie.dto'
 
 describe('MovieService', () => {
   let movieService: MovieService
@@ -384,6 +385,192 @@ describe('MovieService', () => {
 
       expect(qr.manager.find).toHaveBeenCalledWith(Genre, { where: { id: In(genreIds) } })
       expect(qr.manager.findOneBy).toHaveBeenCalledWith(Director, { id: directorId })
+    })
+  })
+
+  describe('processUpdateMovie', () => {
+    let qr: jest.Mocked<QueryRunner>
+    let qb: jest.Mocked<UpdateQueryBuilder<any>>
+    let updateMovie: jest.SpyInstance
+    let updateMovieDetail: jest.SpyInstance
+    let updateMovieGenreRelation: jest.SpyInstance
+    let findMovie: jest.SpyInstance
+
+    const genres = [
+      { id: 1, name: 'genre 1', description: 'description1' },
+      { id: 2, name: 'genre 2', description: 'description2' },
+      { id: 3, name: 'genre 3', description: 'description3' },
+      { id: 4, name: 'genre 4', description: 'description4' },
+    ]
+
+    beforeEach(() => {
+      qb = {
+        set: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue({}),
+      } as any as jest.Mocked<UpdateQueryBuilder<any>>
+
+      qr = {
+        connect: jest.fn().mockReturnThis(),
+        startTransaction: jest.fn().mockReturnThis(),
+        commitTransaction: jest.fn().mockReturnThis(),
+        release: jest.fn().mockReturnThis(),
+        rollbackTransaction: jest.fn().mockReturnThis(),
+
+        createQueryBuilder: jest.fn().mockReturnValue(qb),
+
+        manager: {
+          find: jest.fn(),
+          findOneBy: jest.fn(),
+        },
+      } as any as jest.Mocked<QueryRunner>
+
+      findMovie = jest.spyOn(movieService, 'findMovie')
+      updateMovie = jest.spyOn(movieService, 'updateMovie')
+      updateMovieDetail = jest.spyOn(movieService, 'updateMovieDetail')
+      updateMovieGenreRelation = jest.spyOn(movieService, 'updateMovieGenreRelation')
+
+      jest.spyOn(dataSource, 'createQueryRunner').mockReturnValue(qr)
+    })
+
+    it('should return updated movie info after update', async () => {
+      // given
+      const id = 1
+      const genreIds = [1, 2]
+      const movieFileName = 'updatedMovieFileName1'
+      const updateMovieDto = { title: 'update movie 1', detail: 'update detail 1', movieFileName, genreIds, directorId: id } as UpdateMovieDto
+      const movie = { movieId: id, title: 'movie 1', detail: 'detail 1', movieFileName: 'movieFileName1', genreIds: [3, 4] } as any as Movie
+      const director = { id, name: 'director 1' } as any as Director
+      const updatedMovie = { id, ...updateMovieDto } as any as Movie
+
+      const filteredGenres = genres.filter(genre => genreIds.includes(genre.id))
+
+      findMovie.mockResolvedValue(movie)
+      jest.spyOn(qr.manager, 'find').mockResolvedValue(filteredGenres)
+      updateMovieGenreRelation.mockResolvedValue(undefined)
+      jest.spyOn(qr.manager, 'findOneBy').mockResolvedValue(director)
+      updateMovieDetail.mockResolvedValue(undefined)
+      updateMovie.mockReturnValue(qb)
+      findMovie.mockResolvedValue(updatedMovie)
+
+      // when
+      const result = await movieService.processUpdateMovie(id, updateMovieDto)
+
+      // then
+      expect(result).toEqual(updatedMovie)
+
+      expect(dataSource.createQueryRunner).toHaveBeenCalled()
+      expect(qr.connect).toHaveBeenCalled()
+      expect(qr.startTransaction).toHaveBeenCalled()
+      expect(findMovie).toHaveBeenCalledWith(id)
+      expect(qr.manager.find).toHaveBeenCalledWith(Genre, { where: { id: In(genreIds) } })
+      expect(updateMovieGenreRelation).toHaveBeenCalledWith(qr, id, genreIds)
+      expect(qr.manager.findOneBy).toHaveBeenCalledWith(Director, { id })
+      expect(updateMovieDetail).toHaveBeenCalledWith(qr, updateMovieDto.detail, updatedMovie)
+      expect(updateMovie).toHaveBeenCalledWith(qr, expect.any(Object), id)
+      expect(qb.set).toHaveBeenCalledWith({ director: { id } })
+      expect(qb.execute).toHaveBeenCalled()
+      expect(qr.commitTransaction).toHaveBeenCalled()
+      expect(qr.release).toHaveBeenCalled()
+      expect(findMovie).toHaveBeenCalledWith(id)
+    })
+
+    it('should throw NotFoundException when the movie does not exist', async () => {
+      // given
+      const id = 1
+      const genreIds = [1, 2]
+      const movieFileName = 'updatedMovieFileName1'
+      const updateMovieDto = { title: 'update movie 1', detail: 'update detail 1', movieFileName, genreIds, directorId: id } as UpdateMovieDto
+
+      findMovie.mockResolvedValue(null)
+
+      // when & then
+      await expect(movieService.processUpdateMovie(id, updateMovieDto)).rejects.toThrow(NotFoundException)
+
+      expect(dataSource.createQueryRunner).toHaveBeenCalled()
+      expect(qr.connect).toHaveBeenCalled()
+      expect(qr.startTransaction).toHaveBeenCalled()
+      expect(findMovie).toHaveBeenCalledWith(id)
+      expect(qr.rollbackTransaction).toHaveBeenCalled()
+      expect(qr.release).toHaveBeenCalled()
+    })
+
+    it('should throw NotFoundException when any of genres not found', async () => {
+      // given
+      const id = 1
+      const genreIds = [99, 100]
+      const movieFileName = 'updatedMovieFileName1'
+      const updateMovieDto = { title: 'update movie 1', detail: 'update detail 1', movieFileName, genreIds, directorId: id } as UpdateMovieDto
+      const movie = { movieId: id, title: 'movie 1', detail: 'detail 1', movieFileName: 'movieFileName1', genreIds: [3, 4] } as any as Movie
+
+      const filteredGenres = genres.filter(genre => genreIds.includes(genre.id))
+
+      findMovie.mockResolvedValue(movie)
+      jest.spyOn(qr.manager, 'find').mockResolvedValue(filteredGenres)
+
+      // when & then
+      await expect(movieService.processUpdateMovie(id, updateMovieDto)).rejects.toThrow(NotFoundException)
+
+      expect(dataSource.createQueryRunner).toHaveBeenCalled()
+      expect(qr.connect).toHaveBeenCalled()
+      expect(qr.startTransaction).toHaveBeenCalled()
+      expect(findMovie).toHaveBeenCalledWith(id)
+      expect(qr.manager.find).toHaveBeenCalledWith(Genre, { where: { id: In(genreIds) } })
+      expect(qr.rollbackTransaction).toHaveBeenCalled()
+      expect(qr.release).toHaveBeenCalled()
+    })
+
+    it('should throw NotFoundException when some of genres not found', async () => {
+      // given
+      const id = 1
+      const genreIds = [1, 2, 100]
+      const movieFileName = 'updatedMovieFileName1'
+      const updateMovieDto = { title: 'update movie 1', detail: 'update detail 1', movieFileName, genreIds, directorId: id } as UpdateMovieDto
+      const movie = { movieId: id, title: 'movie 1', detail: 'detail 1', movieFileName: 'movieFileName1', genreIds: [3, 4] } as any as Movie
+
+      const filteredGenres = genres.filter(genre => genreIds.includes(genre.id))
+
+      findMovie.mockResolvedValue(movie)
+      jest.spyOn(qr.manager, 'find').mockResolvedValue(filteredGenres)
+
+      // when & then
+      await expect(movieService.processUpdateMovie(id, updateMovieDto)).rejects.toThrow(NotFoundException)
+
+      expect(dataSource.createQueryRunner).toHaveBeenCalled()
+      expect(qr.connect).toHaveBeenCalled()
+      expect(qr.startTransaction).toHaveBeenCalled()
+      expect(findMovie).toHaveBeenCalledWith(id)
+      expect(qr.manager.find).toHaveBeenCalledWith(Genre, { where: { id: In(genreIds) } })
+      expect(qr.rollbackTransaction).toHaveBeenCalled()
+      expect(qr.release).toHaveBeenCalled()
+    })
+
+    it('should throw NotFoundException when director not found', async () => {
+      // given
+      const id = 1
+      const genreIds = [1, 2]
+      const movieFileName = 'updatedMovieFileName1'
+      const updateMovieDto = { title: 'update movie 1', detail: 'update detail 1', movieFileName, genreIds, directorId: id } as UpdateMovieDto
+      const movie = { movieId: id, title: 'movie 1', detail: 'detail 1', movieFileName: 'movieFileName1', genreIds: [3, 4] } as any as Movie
+
+      const filteredGenres = genres.filter(genre => genreIds.includes(genre.id))
+
+      findMovie.mockResolvedValue(movie)
+      jest.spyOn(qr.manager, 'find').mockResolvedValue(filteredGenres)
+      updateMovieGenreRelation.mockResolvedValue(undefined)
+      jest.spyOn(qr.manager, 'findOneBy').mockResolvedValue(null)
+
+      // when & then
+      await expect(movieService.processUpdateMovie(id, updateMovieDto)).rejects.toThrow(NotFoundException)
+
+      expect(dataSource.createQueryRunner).toHaveBeenCalled()
+      expect(qr.connect).toHaveBeenCalled()
+      expect(qr.startTransaction).toHaveBeenCalled()
+      expect(findMovie).toHaveBeenCalledWith(id)
+      expect(qr.manager.find).toHaveBeenCalledWith(Genre, { where: { id: In(genreIds) } })
+      expect(updateMovieGenreRelation).toHaveBeenCalledWith(qr, id, genreIds)
+      expect(qr.manager.findOneBy).toHaveBeenCalledWith(Director, { id })
+      expect(qr.rollbackTransaction).toHaveBeenCalled()
+      expect(qr.release).toHaveBeenCalled()
     })
   })
 })
