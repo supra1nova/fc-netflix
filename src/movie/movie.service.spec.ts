@@ -13,13 +13,17 @@ import { GetMoviesDto } from './dto/get-movies.dto'
 import { NotFoundException } from '@nestjs/common'
 import { CreateMovieDto } from './dto/create-movie.dto'
 import { UpdateMovieDto } from './dto/update-movie.dto'
+import { MovieDetail } from './entity/movie-detail.entity'
 
 describe('MovieService', () => {
+  /** 테스트 대상 객체는 실제 class 로 처리 */
   let movieService: MovieService
+  /** 연관 repository 들은 모두 Mocked<Repository<entity이름>> 로 처리 */
   let movieRepository: Mocked<Repository<Movie>>
   let genreRepository: Mocked<Repository<Genre>>
   let directorRepository: Mocked<Repository<Director>>
   let movieUserLikeRepository: Mocked<Repository<MovieUserLike>>
+  /** 테스트 대상 객체가 아닌 기타 서비스들은 Mocked<객체 이름> 으로 처리 */
   let cacheManager: Mocked<Cache>
   let dataSource: Mocked<DataSource>
   let commonService: Mocked<CommonService>
@@ -85,6 +89,7 @@ describe('MovieService', () => {
   })
 
   describe('findMovieList', () => {
+    /** 테스트 대상 메서드와 같은 클래스에 존재하는 메서드를 호출할 때는 jest.SpyInstance 를 사용 */
     let getMoviesQbMock: jest.SpyInstance
     let getLikedMoviesQbMock: jest.SpyInstance
 
@@ -99,6 +104,7 @@ describe('MovieService', () => {
 
     /** 각 it 에서 사용하게될 메서드 인스턴스를 계속 초기화 */
     beforeEach(() => {
+      /** 테스트 대상 메서드와 같은 클래스에 존재하는 메서드들을 초기화 할 때는 jest.spyOn 를 사용 */
       getMoviesQbMock = jest.spyOn(movieService, 'getMoviesQb')
       getLikedMoviesQbMock = jest.spyOn(movieService, 'getLikedMoviesQb')
     })
@@ -569,6 +575,71 @@ describe('MovieService', () => {
       expect(qr.manager.find).toHaveBeenCalledWith(Genre, { where: { id: In(genreIds) } })
       expect(updateMovieGenreRelation).toHaveBeenCalledWith(qr, id, genreIds)
       expect(qr.manager.findOneBy).toHaveBeenCalledWith(Director, { id })
+      expect(qr.rollbackTransaction).toHaveBeenCalled()
+      expect(qr.release).toHaveBeenCalled()
+    })
+  })
+
+  describe('processDeleteMovie', () => {
+    let qr: jest.Mocked<QueryRunner>
+    let deleteMovie: jest.SpyInstance
+    let deleteMovieDetail: jest.SpyInstance
+    let findMovie: jest.SpyInstance
+
+    const movie = { id: 1, title: 'movie 1', detail: { id: 1, detail: 'detail 1' } as MovieDetail } as Movie
+
+    beforeEach(() => {
+      qr = {
+        connect: jest.fn().mockReturnThis(),
+        startTransaction: jest.fn().mockReturnThis(),
+        commitTransaction: jest.fn().mockReturnThis(),
+        rollbackTransaction: jest.fn().mockReturnThis(),
+        release: jest.fn().mockReturnThis(),
+      } as any as jest.Mocked<QueryRunner>
+
+      findMovie = jest.spyOn(movieService, 'findMovie')
+      deleteMovie = jest.spyOn(movieService, 'deleteMovie')
+      deleteMovieDetail = jest.spyOn(movieService, 'deleteMovieDetail')
+    })
+
+    it('should delete movie', async () => {
+      // given
+      const id = 1
+
+      jest.spyOn(dataSource, 'createQueryRunner').mockReturnValue(qr)
+      findMovie.mockResolvedValue(movie)
+      deleteMovie.mockResolvedValue(undefined)
+      deleteMovieDetail.mockResolvedValue(undefined)
+
+      // when
+      const result = await movieService.processDeleteMovie(id)
+
+      // then
+      expect(result).toBeUndefined()
+      expect(dataSource.createQueryRunner).toHaveBeenCalled()
+      expect(qr.connect).toHaveBeenCalled()
+      expect(qr.startTransaction).toHaveBeenCalled()
+      expect(findMovie).toHaveBeenCalledWith(id)
+      expect(deleteMovie).toHaveBeenCalledWith(qr, id)
+      expect(deleteMovieDetail).toHaveBeenCalledWith(qr, movie)
+      expect(qr.commitTransaction).toHaveBeenCalled()
+      expect(qr.release).toHaveBeenCalled()
+    })
+
+    it('should throw NotFoundException if movie does not exist', async () => {
+      // given
+      const id = 99
+
+      jest.spyOn(dataSource, 'createQueryRunner').mockReturnValue(qr)
+      findMovie.mockResolvedValue(null)
+
+      // when & then
+      await expect(movieService.processDeleteMovie(id)).rejects.toThrow(NotFoundException)
+
+      expect(dataSource.createQueryRunner).toHaveBeenCalled()
+      expect(qr.connect).toHaveBeenCalled()
+      expect(qr.startTransaction).toHaveBeenCalled()
+      expect(findMovie).toHaveBeenCalledWith(id)
       expect(qr.rollbackTransaction).toHaveBeenCalled()
       expect(qr.release).toHaveBeenCalled()
     })

@@ -397,7 +397,28 @@ export class MovieService {
     }
   }
 
-  async deleteMovie(id: number) {
+  /* istanbul ignore next */
+  async deleteMovie(qr: QueryRunner, id: number) {
+    // cascade 가 있음에 따라 movie 부터 삭제 후 연관 테이블의 데이터 삭제 진행
+    // createQueryBuilder 의 delete 사용하는 경우 from 메서드를 추가하고 인수로 entity 명시 필수
+    await qr.manager.createQueryBuilder()
+      .delete()
+      .from(Movie)
+      .where('id = :id', { id })
+      .execute()
+  }
+
+  /* istanbul ignore next */
+  async deleteMovieDetail(qr: QueryRunner, movie: Movie) {
+    await qr.manager
+      .createQueryBuilder()
+      .delete()
+      .from(MovieDetail)
+      .where('id = :id', { id: movie.detail.id })
+      .execute()
+  }
+
+  async processDeleteMovie(id: number) {
     const qr = this.datasource.createQueryRunner()
     await qr.connect()
     await qr.startTransaction()
@@ -408,15 +429,8 @@ export class MovieService {
         throw new NotFoundException('no movie id found')
       }
 
-      // cascade 가 있음에 따라 movie 부터 삭제 후 연관 테이블의 데이터 삭제 진행
-      // createQueryBuilder 의 delete 사용하는 경우 from 메서드를 추가하고 인수로 entity 명시 필수
-      await qr.manager.createQueryBuilder().delete().from(Movie).where('id = :id', { id }).execute()
-      await qr.manager
-        .createQueryBuilder()
-        .delete()
-        .from(MovieDetail)
-        .where('id = :id', { id: movie.detail.id })
-        .execute()
+      await this.deleteMovie(qr, id)
+      await this.deleteMovieDetail(qr, movie)
 
       await qr.commitTransaction()
     } catch (e) {

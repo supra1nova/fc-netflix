@@ -255,7 +255,7 @@ export class MovieController {
   @Delete(':id')
   @RBAC(Role.ADMIN)
   deleteMovie(@Param('id', new ParseIntPipe()) id: number) {
-    return this.movieService.deleteMovie(id)
+    return this.movieService.processDeleteMovie(id)
   }
 
   @Public()
