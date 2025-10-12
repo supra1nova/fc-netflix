@@ -1,27 +1,97 @@
 # FC-Netflix
 
-### Netflix CRUD 프로젝트 - NestJS 기반 개인 토이 프로젝트
+NestJS + TypeScript 기반 Netflix 유사 CRUD 서비스 토이 프로젝트.  
 
 ---
 
-## 📚 프로젝트 개요
-
-* **목표**: NestJS를 활용하여 Netflix와 유사한 CRUD 서비스 구현 및 학습 후 배포 진행
-* **프로젝트 유형**: 개인 토이 프로젝트
-* **주요 기능(2025년 10월 기준)**:
-    * 영화 CRUD 및 테스트 코드
-    * 장르 CRUD 및 테스트 코드
-    * 감독 CRUD 및 테스트 코드
-    * 유저 CRUD 및 테스트 코드
-    * 회원가입 및 JWT 인증 기반 로그인 기능 및 테스트 코드
+## 📚 프로젝트 목적
+- NestJS + TypeScript 기반으로 Netflix 형태 서비스의 백엔드단 서비스 구현
+- JWT 인증, Redis 캐시, Winston 로깅, 테스트(Unit/Integration/e2e2) 내용 학습/복기
 
 ---
 
-## 🛠 기술 스택
+## 주요 기능
+- **영화, 장르, 감독, 유저 CRUD**
+- **회원가입 / 로그인**
+    - Base64 ID/Password 사용
+    - Access / Refresh 토큰 발급
+    - 비밀번호 bcrypt 해싱 후 DB 저장
+- **Redis 캐시**
+    - 일부 조회 API에 적용 (영화 목록 등)
+    - 캐시 미스 시 DB 조회 후 Redis 적재
+- **Winston 로깅**
+    - 콘솔 로그 중심
+    - 환경변수 기반 로그 레벨 관리
 
-* **백엔드**: NestJS, TypeScript
-* **테스트**: Jest (단위 테스트, e2e 테스트)
-* **패키지 관리**: npm
+---
+
+## 브랜치 전략 (Git Flow)
+- **main**: 운영 서버 배포 가능한 상태의 코드
+- **develop**: 개발 서버 배포 가능한 상태의 코드 및 기능 개발 통합 브랜치
+- **feature/{기능명}**: 신규 기능 개발 브랜치
+- **fix/{기능명}**: 수정 사항 브랜치
+- feature/fix 브랜치에서 개발/수정, 필요시 rebase로 충돌 최소화
+- Git Flow 규칙을 따르며, PR 후 develop/main 병합
+
+---
+
+## 아키텍처 / 구조
+- **모노레틱(Monolithic) 구조**로 모든 모듈이 하나의 애플리케이션 안에 통합
+- 모듈: `AuthModule`, `UserModule`, `MovieModule`, `GenreModule`, `DirectorModule`
+- 각 모듈: Controller → Service → Repository
+- 환경 변수 관리: DB, Redis, JWT 비밀 키 등 `.env` 기반
+- 로깅: Winston + NestJS 인터셉터
+
+---
+
+## 인증 / 토큰 흐름
+1. Base64 인코딩 ID/Password를 이용한 로그인
+2. Access / Refresh 토큰 발급
+3. Access 토큰 만료 시 Refresh 토큰으로 재발급
+4. Refresh 토큰 무효화 시 재로그인 필요
+
+---
+
+## 테스트
+- **Unit 테스트**
+    - 서비스 레이어 기능 검증
+    - CRUD 정상/예외 처리
+- **Integration 테스트**
+    - DB + Redis 연결 후 CRUD 및 캐시 흐름 검증
+
+---
+
+## Winston 로깅
+- 로그 레벨: debug
+- 파일 로그 로컬 미생성 -> 추후 적용 예정
+
+---
+
+## 현재 작업 중 및 예정 사항
+- e2e 작업중
+- AWS 배포 예정
+- Docker 컨테이너화 예정
+- CI/CD 파이프라인 예정
+- 전역적인 Redis 캐시 활용으로 조회 성능 최적화 예정
+- MSA 아키텍쳐 적용해 서비스 분리 예정
+- 로그 Sentry 오류 추적 예정
+- dev 환경 이상인 경우 Winston 로그 저장 예정
+- 암호화 해시 알고리즘 argon2 로 전환 예정
+
+---
+
+## 환경 변수 예시 (.env)
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_USERNAME=root
+DB_PASSWORD=secret
+DB_DATABASE=fc_netflix
+REDIS_HOST=localhost
+REDIS_PORT=6379
+JWT_ACCESS_SECRET=your_access_secret
+JWT_REFRESH_SECRET=your_refresh_secret
+```
 
 ---
 
