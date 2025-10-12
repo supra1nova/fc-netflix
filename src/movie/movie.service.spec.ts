@@ -400,6 +400,7 @@ describe('MovieService', () => {
     let qr: jest.Mocked<QueryRunner>
     let qb: jest.Mocked<UpdateQueryBuilder<any>>
     let updateMovie: jest.SpyInstance
+    let updateDirector: jest.SpyInstance
     let updateMovieDetail: jest.SpyInstance
     let updateMovieGenreRelation: jest.SpyInstance
     let findMovie: jest.SpyInstance
@@ -412,19 +413,12 @@ describe('MovieService', () => {
     ]
 
     beforeEach(() => {
-      qb = {
-        set: jest.fn().mockReturnThis(),
-        execute: jest.fn().mockResolvedValue({}),
-      } as any as jest.Mocked<UpdateQueryBuilder<any>>
-
       qr = {
         connect: jest.fn().mockReturnThis(),
         startTransaction: jest.fn().mockReturnThis(),
         commitTransaction: jest.fn().mockReturnThis(),
         release: jest.fn().mockReturnThis(),
         rollbackTransaction: jest.fn().mockReturnThis(),
-
-        createQueryBuilder: jest.fn().mockReturnValue(qb),
 
         manager: {
           find: jest.fn(),
@@ -434,6 +428,7 @@ describe('MovieService', () => {
 
       findMovie = jest.spyOn(movieService, 'findMovie')
       updateMovie = jest.spyOn(movieService, 'updateMovie')
+      updateDirector = jest.spyOn(movieService, 'updateDirector')
       updateMovieDetail = jest.spyOn(movieService, 'updateMovieDetail')
       updateMovieGenreRelation = jest.spyOn(movieService, 'updateMovieGenreRelation')
 
@@ -456,8 +451,9 @@ describe('MovieService', () => {
       jest.spyOn(qr.manager, 'find').mockResolvedValue(filteredGenres)
       updateMovieGenreRelation.mockResolvedValue(undefined)
       jest.spyOn(qr.manager, 'findOneBy').mockResolvedValue(director)
+      updateDirector.mockResolvedValue(undefined)
       updateMovieDetail.mockResolvedValue(undefined)
-      updateMovie.mockReturnValue(qb)
+      updateMovie.mockResolvedValue(undefined)
       findMovie.mockResolvedValue(updatedMovie)
 
       // when
@@ -473,10 +469,9 @@ describe('MovieService', () => {
       expect(qr.manager.find).toHaveBeenCalledWith(Genre, { where: { id: In(genreIds) } })
       expect(updateMovieGenreRelation).toHaveBeenCalledWith(qr, id, genreIds)
       expect(qr.manager.findOneBy).toHaveBeenCalledWith(Director, { id })
+      expect(updateDirector).toHaveBeenCalledWith(qr, id, updateMovieDto.directorId)
       expect(updateMovieDetail).toHaveBeenCalledWith(qr, updateMovieDto.detail, updatedMovie)
       expect(updateMovie).toHaveBeenCalledWith(qr, expect.any(Object), id)
-      expect(qb.set).toHaveBeenCalledWith({ director: { id } })
-      expect(qb.execute).toHaveBeenCalled()
       expect(qr.commitTransaction).toHaveBeenCalled()
       expect(qr.release).toHaveBeenCalled()
       expect(findMovie).toHaveBeenCalledWith(id)

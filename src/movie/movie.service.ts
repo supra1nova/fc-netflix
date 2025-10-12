@@ -296,7 +296,11 @@ export class MovieService {
           .execute()
         const movieId = movieInsertResult.identifiers[0].id
 
-        await qr.manager.createQueryBuilder().relation(Movie, 'genres').of(movieId).add(genreIds)
+        await qr.manager
+          .createQueryBuilder()
+          .relation(Movie, 'genres')
+          .of(movieId)
+          .add(genreIds)
       }
 
       await qr.commitTransaction()
@@ -314,12 +318,22 @@ export class MovieService {
   }
 
   /* istanbul ignore next */
-  updateMovie(qr: QueryRunner, movieRest: UpdateMovieDto, id: number) {
-    return qr.manager
+  async updateMovie(qr: QueryRunner, movieRest: UpdateMovieDto, id: number) {
+    await qr.manager
       .createQueryBuilder()
       .update(Movie)
       .set({ ...movieRest })
       .where('id = :id', { id })
+      .execute()
+  }
+
+  /* istanbul ignore next */
+  async updateDirector(qr: QueryRunner, id: number, directorId: number) {
+    await qr.manager
+      .createQueryBuilder()
+      .relation(Movie, 'director')
+      .of(id)
+      .set({ id: directorId })
   }
 
   /* istanbul ignore next */
@@ -335,7 +349,33 @@ export class MovieService {
 
   /* istanbul ignore next */
   async updateMovieGenreRelation(qr: QueryRunner, id: number, genreIds: number[]) {
-    await qr.manager.createQueryBuilder().relation(Movie, 'genres').of(id).set(genreIds)
+    /**
+     * relation.of.set 의 경우 관련 데이터를 다 지우고 새로 등록하므로,
+     * 특정 데이터를 넣고 지우는 addAndRemove 보다 오히려 깔끔하다고 볼 수 있음
+     * !!! 다만 이건 일대일 또는 일대다/다대일인 경우에만 작동
+     */
+    /*await qr.manager
+      .createQueryBuilder()
+      .relation(Movie, 'genres')
+      .of(id)
+      .set(genreIds)*/
+
+    /**
+     * 다대다인 경우에는 다음과 같이 기존 관계 전체 삭제 후 새로운 관계 설정으로 처리
+     */
+      // 1. 기존 관계 ID 모두 가져오기
+    const existingGenres = await qr.manager
+        .createQueryBuilder()
+        .relation(Movie, 'genres')
+        .of(id)
+        .loadMany()
+    const existingGenreIds = existingGenres.map(g => g.id)
+
+    // 2. 기존 관계 제거 + 새 관계 추가
+    await qr.manager.createQueryBuilder()
+      .relation(Movie, 'genres')
+      .of(id)
+      .addAndRemove(genreIds, existingGenreIds)
   }
 
   async processUpdateMovie(id: number, updateMovieDto: UpdateMovieDto) {
@@ -344,7 +384,7 @@ export class MovieService {
     await qr.startTransaction()
 
     try {
-      const { genreIds, detail, directorId, ...movieRest } = updateMovieDto
+      const { genreIds, detail, directorId, movieFileName, ...movieRest } = updateMovieDto
 
       const movie = await this.findMovie(id)
       if (!movie) {
@@ -363,28 +403,26 @@ export class MovieService {
           throw new NotFoundException(`${joinedNotFoundGenreIds} genre not found`)
         }
 
-        // relation.of.set 의 경우 관련 데이터를 다 지우고 새로 등록하므로, 특정 데이터를 넣고 지우는 addAndRemove 보다 오히려 깔끔하다고 볼 수 있음
         await this.updateMovieGenreRelation(qr, id, genreIds)
       }
 
       if (directorId) {
         const director = await qr.manager.findOneBy(Director, { id: directorId })
+
         if (!director) {
           throw new NotFoundException('director not found')
         }
+
+        await this.updateDirector(qr, id, directorId)
       }
 
       if (detail) {
         await this.updateMovieDetail(qr, detail, movie)
       }
 
-      let qb = this.updateMovie(qr, { ...movieRest }, id)
+      const updateData = { ...movieRest, movieFilePath: movieFileName } as UpdateMovieDto
 
-      if (directorId) {
-        qb = qb.set({ director: { id: directorId } })
-      }
-
-      await qb.execute()
+      await this.updateMovie(qr, updateData, id)
 
       await qr.commitTransaction()
 
@@ -504,7 +542,10 @@ export class MovieService {
       await qr.manager.increment(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1)
     }
 
-    const result = await qr.manager.findOneBy(MovieUserLike, { movie: { id: movieId }, user: { id: userId } })
+    // const result = await qr.manager.findOneBy(MovieUserLike, { movie: { id: movieId }, user: { id: userId } })
+    const result = await qr.manager.findOne(MovieUserLike, {
+      where: { movieId, userId },
+    });
 
     return {
       isLike: result?.isLike ?? null,
