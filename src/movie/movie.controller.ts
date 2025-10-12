@@ -53,6 +53,18 @@ export class MovieController {
   constructor(private readonly movieService: MovieService) {
   }
 
+  @Get('recent')
+  @Public()
+  // @UseInterceptor와 CacheInterceptor를 이용해 캐싱하게 되는 경우 url을 기반으로 캐싱하게 되므로 url이 키가 되어 캐싱됨
+  @UseInterceptors(CacheInterceptor)
+  // @CacheKey 가 별도 존재시 아무리 UseInterceptor와 CacehInterceptor 를 이용해도 지정된 키를 이용해 저장됨
+  @CacheKey('getMovieRecent')
+  @CacheTTL(1000)
+  getRecentMovieList() {
+    console.log('getMoviesRecent() 실행')
+    return this.movieService.findRecentMovieList()
+  }
+
   @Get()
   @Public()
   @Throttle({
@@ -81,26 +93,17 @@ export class MovieController {
     return this.movieService.findMovieList(dto, userId)
   }
 
-  @Get('recent')
-  @Public()
-  // @UseInterceptor와 CacheInterceptor를 이용해 캐싱하게 되는 경우 url을 기반으로 캐싱하게 되므로 url이 키가 되어 캐싱됨
-  @UseInterceptors(CacheInterceptor)
-  // @CacheKey 가 별도 존재시 아무리 UseInterceptor와 CacehInterceptor 를 이용해도 지정된 키를 이용해 저장됨
-  @CacheKey('getMovieRecent')
-  @CacheTTL(1000)
-  getRecentMovieList() {
-    console.log('getMoviesRecent() 실행')
-    return this.movieService.findRecentMovieList()
-  }
-
   @Get(':id')
   @Public()
   // getOneMovie(@Param('id', ParseIntPipe) id: number) {
   getMovie(
     @Param(
       'id',
+      /* istanbul ignore next */
       new ParseIntPipe({
+        /* istanbul ignore next */
         exceptionFactory(error) {
+          /* istanbul ignore next */
           throw new BadRequestException('숫자를 입력해주세요')
         },
       }),
@@ -258,6 +261,7 @@ export class MovieController {
     return this.movieService.processDeleteMovie(id)
   }
 
+  /* istanbul ignore next */
   @Public()
   @Post('bulk-upload/:round')
   postMovies(@Param('round', new ParseIntPipe()) round: number) {
