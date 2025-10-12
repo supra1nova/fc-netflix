@@ -33,7 +33,8 @@
     "test:genre:cov": "jest --testPathPattern=src/genre --coverage --collectCoverageFrom=src/genre/**",
     "test:movie": "jest --testPathPattern=src/movie",
     "test:movie:watch": "jest --testPathPattern=src/movie --watch",
-    "test:movie:cov": "jest --testPathPattern=src/movie --coverage --collectCoverageFrom=src/movie/**"
+    "test:movie:cov": "jest --testPathPattern=src/movie --coverage --collectCoverageFrom=src/movie/**",
+    "test:movie:integration": "jest --testPathPattern=src/movie --testRegex='.*\\.integration\\.spec\\.ts$'"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^3.0.1",
