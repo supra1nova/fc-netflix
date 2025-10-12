@@ -34,7 +34,10 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-assignment': 'off', // 타입이 any인 값을 타입이 명확한 변수나 속성 대입 금지 여부
       '@typescript-eslint/no-unsafe-member-access': 'off', // any 타입 객체의 프로퍼티나 메서드에 접근 금지 여부
       '@typescript-eslint/no-unsafe-return': 'off', // any 타입 값을 함수에서 반환 금지 여부
-      'prettier/prettier': 'error', // prettier 포메팅 규칙을 강제로 eslint 에러로 간주 여부
+      'prefer-const': 'off', // 재할당되지 않는 변수를 const 가 아닌 let으로 된 경우 에러 간주 여부
+      'prettier/prettier': 'off', // prettier 포메팅 규칙을 강제로 eslint 에러로 간주 여부
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off', // 불필요한 타입 단언 에러 간주 여부
+      '@typescript-eslint/restrict-template-expressions': 'off', // 템플릿 리터럴에 타입이 안전하지 않은 값 삽입시 에러 여부
       '@typescript-eslint/unbound-method': 'off',
       semi: ['error', 'never'], // 마지막에 semi-colon 여부, error: 에러처리, never: 세미클론 금지, always: 세미콜론 필수
     },
