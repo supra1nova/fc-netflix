@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { INestApplication, ValidationPipe } from '@nestjs/common'
+import {
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common'
 import * as request from 'supertest'
 import { App } from 'supertest/types'
 import { AppModule } from '../app.module'
@@ -234,6 +237,23 @@ describe('MovieController (e2e)', () => {
   })
 
   describe('[Patch /movie/{id}]', () => {
+    it('Should throw if movie does not exist', async () => {
+      const movieId = 999
+
+      const dto = {
+        title: 'update e2e test title1',
+        detail: 'update e2e test details 1',
+        directorId: directors[1].id,
+        genreIds: [genres[0].id],
+      } as UpdateMovieDto
+
+      await request(app.getHttpServer())
+        .patch(`/movie/${movieId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(dto)
+        .expect(404)
+    })
+
     it('Should update movie', async () => {
       const movieId = movies[0].id
 
@@ -258,5 +278,101 @@ describe('MovieController (e2e)', () => {
     })
   })
 
-  describe('[Delete /movie/id]')
+  describe('[Delete /movie/id]', () => {
+    it('Should throw NotFoundException if movie does not exist', async () => {
+      await request(app.getHttpServer())
+        .delete(`/movie/999`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(404)
+    })
+
+    it('Should delete movie', async () => {
+      await request(app.getHttpServer())
+        .delete(`/movie/${movies[0].id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+    })
+  })
+
+  describe('[Delete /movie/{id}/like]', () => {
+    it('Should throw NotFoundException if movie does not exist', async () => {
+      await request(app.getHttpServer())
+        .post(`/movie/999/like`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(400)
+    })
+
+    it('Should return isLike status after like request', async () => {
+      await request(app.getHttpServer())
+        .post(`/movie/${movies[1].id}/like`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.isLike).toBe(true)
+        })
+    })
+
+    it('Should return isLike status after like request again', async () => {
+      await request(app.getHttpServer())
+        .post(`/movie/${movies[1].id}/like`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.isLike).toBe(null)
+        })
+    })
+
+    it('Should return isLike if like request from dislike', async () => {
+      await request(app.getHttpServer())
+        .post(`/movie/${movies[1].id}/dislike`)
+        .set('Authorization', `Bearer ${accessToken}`)
+
+      await request(app.getHttpServer())
+        .post(`/movie/${movies[1].id}/like`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.isLike).toBe(true)
+        })
+    })
+  })
+
+  describe('[Delete /movie/{id}/dislike]', () => {
+    it('Should throw NotFoundException if movie does not exist', async () => {
+      await request(app.getHttpServer())
+        .post(`/movie/999/dislike`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(400)
+    })
+
+    it('Should return isLike status after dislike request', async () => {
+      await request(app.getHttpServer())
+        .post(`/movie/${movies[2].id}/dislike`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.isLike).toBe(false)
+        })
+    })
+
+    it('Should return isLike status after dislike request again', async () => {
+      await request(app.getHttpServer())
+        .post(`/movie/${movies[2].id}/dislike`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.isLike).toBe(null)
+        })
+    })
+
+    it('Should return isLike if dislike request from like', async () => {
+      await request(app.getHttpServer())
+        .post(`/movie/${movies[1].id}/dislike`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.isLike).toBe(false)
+        })
+    })
+  })
 })
