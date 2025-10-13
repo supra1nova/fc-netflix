@@ -34,6 +34,11 @@ import * as winston from 'winston'
     // 환경변수를 로딩 후 애플케이션 전역에서 사용할 수 있도록 설정
     ConfigModule.forRoot({
       isGlobal: true, // 어떤 모듈에서든 환경 변수 사용 요부
+      envFilePath:
+        process.env.NODE_ENV === 'prod' ? '.prod.env' :
+        process.env.NODE_ENV === 'dev' ? '.dev.env' :
+        process.env.NODE_ENV === 'test' ? '.test.env' :
+        '.env', // NODE_ENV가 없이 실행시 로컬 환경 env 로 실행
       validationSchema: Joi.object({
         ENV: Joi.string().required(),
         DB_TYPE: Joi.string()
