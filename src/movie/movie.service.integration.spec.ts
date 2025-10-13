@@ -35,14 +35,17 @@ describe('MovieService Integration Test', () => {
           /** :memory: 를 이용해 메모리에서 처리 */
           database: ':memory:',
           dropSchema: true,
-          entities: [
-            Movie, MovieDetail, Director, Genre, User, MovieUserLike,
-          ],
+          entities: [Movie, MovieDetail, Director, Genre, User, MovieUserLike],
           synchronize: true,
           logging: false,
         }),
         TypeOrmModule.forFeature([
-          Movie, MovieDetail, Director, Genre, User, MovieUserLike,
+          Movie,
+          MovieDetail,
+          Director,
+          Genre,
+          User,
+          MovieUserLike,
         ]),
       ],
       /** 테스트 대상 서비스의 module에 import 된 module 존재 시 확인 후 관련 service 추가 필요*/
@@ -67,26 +70,36 @@ describe('MovieService Integration Test', () => {
     const genreRepository = dataSource.getRepository(Genre)
 
     /** 테스트용 엔티티 생성 및 저장 */
-    users = [1, 2].map(
-      (number) => userRepository.create({
-        id: number, email: `user${number}@test.com`, password: `password${number}`,
-      }))
+    users = [1, 2].map((number) =>
+      userRepository.create({
+        id: number,
+        email: `user${number}@test.com`,
+        password: `password${number}`,
+      }),
+    )
     await userRepository.save(users)
 
-    directors = [1, 2].map(
-      (number) => directorRepository.create({
-        id: number, dob: new Date(1990, 1, number), nationality: `country${number}`, name: `director${number}`,
-      }))
+    directors = [1, 2].map((number) =>
+      directorRepository.create({
+        id: number,
+        dob: new Date(1990, 1, number),
+        nationality: `country${number}`,
+        name: `director${number}`,
+      }),
+    )
     await directorRepository.save(directors)
 
-    genres = [1, 2].map(
-      (number) => genreRepository.create({
-        id: number, name: `genre${number}`, description: `description ${number}`,
-      }))
+    genres = [1, 2].map((number) =>
+      genreRepository.create({
+        id: number,
+        name: `genre${number}`,
+        description: `description ${number}`,
+      }),
+    )
     await genreRepository.save(genres)
 
-    movies = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(
-      (number) => movieRepository.create({
+    movies = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((number) =>
+      movieRepository.create({
         id: number,
         title: `title${number}`,
         creator: users[0],
@@ -99,17 +112,18 @@ describe('MovieService Integration Test', () => {
         movieFilePath: `movieFilePath${number}`,
         director: directors[0],
         createdAt: new Date(`2021-9-${number}`),
-      }))
+      }),
+    )
     await movieRepository.save(movies)
 
-    qr = dataSource.createQueryRunner();
-    await qr.connect();
-    await qr.startTransaction();
+    qr = dataSource.createQueryRunner()
+    await qr.connect()
+    await qr.startTransaction()
   })
 
   afterEach(async () => {
-    await qr.rollbackTransaction();
-    await qr.release();
+    await qr.rollbackTransaction()
+    await qr.release()
   })
 
   afterAll(async () => {
@@ -117,8 +131,8 @@ describe('MovieService Integration Test', () => {
     await dataSource.destroy()
   })
 
-  it('should be defined', async () => {
-    await expect(movieService).toBeDefined()
+  it('should be defined', () => {
+    expect(movieService).toBeDefined()
   })
 
   describe('findRecentMovieList', () => {
@@ -128,21 +142,21 @@ describe('MovieService Integration Test', () => {
       const sortedResult = [...movies].sort(
         (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
       )
-      const sortedResultIds = sortedResult.slice(0, length).map(x => x.id)
+      const sortedResultIds = sortedResult.slice(0, length).map((x) => x.id)
 
       // when
-      const result = await movieService.findRecentMovieList() as Movie[]
+      const result = (await movieService.findRecentMovieList()) as Movie[]
 
       // then
       expect(result).toHaveLength(length)
-      expect(result.map(movie => movie.id)).toEqual(sortedResultIds)
+      expect(result.map((movie) => movie.id)).toEqual(sortedResultIds)
     })
 
     it('should return an array of recent movies from cache', async () => {
       //given
       // when
-      const result = await movieService.findRecentMovieList() as Movie[]
-      const cachedMovies = await cacheManager.get('RECENT_MOVIE') as Movie[]
+      const result = (await movieService.findRecentMovieList()) as Movie[]
+      const cachedMovies = (await cacheManager.get('RECENT_MOVIE')) as Movie[]
 
       // then
       expect(cachedMovies).toEqual(result)
@@ -186,7 +200,7 @@ describe('MovieService Integration Test', () => {
   })
 
   describe('processCreateMovie', () => {
-    beforeEach(async () => {
+    beforeEach(() => {
       jest.spyOn(movieService, 'renameMovieFile').mockResolvedValue()
     })
 
@@ -196,7 +210,7 @@ describe('MovieService Integration Test', () => {
         title: 'test title1',
         detail: 'test detail1',
         directorId: directors[0].id,
-        genreIds: genres.map(x => x.id),
+        genreIds: genres.map((x) => x.id),
         movieFileName: 'fileName1',
       } as CreateMovieDto
       const userId = 1
@@ -204,12 +218,18 @@ describe('MovieService Integration Test', () => {
       const qr = dataSource.createQueryRunner()
 
       // when
-      const result = await movieService.processCreateMovie(createMovieDto, userId, qr) as Movie
+      const result = (await movieService.processCreateMovie(
+        createMovieDto,
+        userId,
+        qr,
+      )) as Movie
 
       // then
       expect(result.title).toBe(createMovieDto.title)
       expect(result.director.id).toBe(createMovieDto.directorId)
-      expect(result.genres.map((genre) => genre.id)).toEqual(createMovieDto.genreIds)
+      expect(result.genres.map((genre) => genre.id)).toEqual(
+        createMovieDto.genreIds,
+      )
       expect(result.movieFilePath).toEqual(createMovieDto.movieFileName)
     })
   })
@@ -222,7 +242,7 @@ describe('MovieService Integration Test', () => {
         title: 'updated title1',
         detail: 'updated detail1',
         directorId: directors[0].id,
-        genreIds: genres.map(x => x.id),
+        genreIds: genres.map((x) => x.id),
         movieFileName: 'fileName1',
       } as UpdateMovieDto
 
@@ -233,7 +253,9 @@ describe('MovieService Integration Test', () => {
       expect(result.title).toBe(updateMovieDto.title)
       expect(result.detail.detail).toBe(updateMovieDto.detail)
       expect(result.director.id).toBe(updateMovieDto.directorId)
-      expect(result.genres.map((genre) => genre.id)).toEqual(updateMovieDto.genreIds)
+      expect(result.genres.map((genre) => genre.id)).toEqual(
+        updateMovieDto.genreIds,
+      )
       expect(result.movieFilePath).toEqual(updateMovieDto.movieFileName)
     })
   })
@@ -247,7 +269,9 @@ describe('MovieService Integration Test', () => {
       await movieService.processDeleteMovie(id)
 
       // then
-      await expect(movieService.findMovie(id)).rejects.toThrow(NotFoundException)
+      await expect(movieService.findMovie(id)).rejects.toThrow(
+        NotFoundException,
+      )
     })
 
     it('should throw error if movie does not exist ', async () => {
@@ -255,7 +279,9 @@ describe('MovieService Integration Test', () => {
       const id = 9999
 
       // when & then
-      await expect(movieService.processDeleteMovie(id)).rejects.toThrow(NotFoundException)
+      await expect(movieService.processDeleteMovie(id)).rejects.toThrow(
+        NotFoundException,
+      )
     })
   })
 
@@ -268,7 +294,9 @@ describe('MovieService Integration Test', () => {
       const qr = dataSource.createQueryRunner()
 
       // when & then
-      await expect(movieService.toggleMovieLike(movieId, userId, isLike, qr)).resolves.toEqual({ isLike })
+      await expect(
+        movieService.toggleMovieLike(movieId, userId, isLike, qr),
+      ).resolves.toEqual({ isLike })
     })
 
     it('should decrease like count', async () => {
@@ -281,7 +309,9 @@ describe('MovieService Integration Test', () => {
       await movieService.toggleMovieLike(movieId, userId, isLike, qr)
 
       // when & then
-      await expect(movieService.toggleMovieLike(movieId, userId, isLike, qr)).resolves.toEqual({ isLike: null })
+      await expect(
+        movieService.toggleMovieLike(movieId, userId, isLike, qr),
+      ).resolves.toEqual({ isLike: null })
 
       expect((await movieService.findMovie(movieId)).likeCount).toBe(0)
     })
@@ -296,7 +326,9 @@ describe('MovieService Integration Test', () => {
       // when & then
       await movieService.toggleMovieLike(movieId, userId, isLike, qr)
 
-      await expect(movieService.toggleMovieLike(movieId, userId, !isLike, qr)).resolves.toEqual({ isLike: !isLike })
+      await expect(
+        movieService.toggleMovieLike(movieId, userId, !isLike, qr),
+      ).resolves.toEqual({ isLike: !isLike })
 
       const movie = await movieService.findMovie(movieId)
       expect(movie.likeCount).toBe(0)
