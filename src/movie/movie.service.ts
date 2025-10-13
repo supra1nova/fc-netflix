@@ -1,4 +1,10 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common'
 import { CreateMovieDto } from './dto/create-movie.dto'
 import { UpdateMovieDto } from './dto/update-movie.dto'
 import { Movie } from './entity/movie.entity'
@@ -31,8 +37,7 @@ export class MovieService {
     // DataSource 는 TypeOrm 에서 가져오므로 그냥 불러오기만 하면 됨
     private readonly datasource: DataSource,
     private readonly commonService: CommonService,
-  ) {
-  }
+  ) {}
 
   async findRecentMovieList() {
     const cachedData = await this.cacheManager.get('RECENT_MOVIE')
@@ -69,7 +74,8 @@ export class MovieService {
 
   /* istanbul ignore next */
   async getLikedMoviesQb(movieIds: number[], userId: number) {
-    return this.movieUserLikeRepository.createQueryBuilder('mul')
+    return this.movieUserLikeRepository
+      .createQueryBuilder('mul')
       .leftJoinAndSelect('mul.user', 'user')
       .leftJoinAndSelect('mul.movie', 'movie')
       .where('movie.id IN (:...movieIds)', { movieIds })
@@ -113,7 +119,7 @@ export class MovieService {
       }), {})
       */
       const likedMovieMap = Object.fromEntries(
-        likedMovies.map(mul => [mul.movie.id, mul.isLike]),
+        likedMovies.map((mul) => [mul.movie.id, mul.isLike]),
       )
 
       /*
@@ -122,7 +128,7 @@ export class MovieService {
         likeStatus: movie.id in likedMovieMap ? likedMovieMap[movie.id] : null
       }))
       */
-      data = data.map(m => ({
+      data = data.map((m) => ({
         ...m,
         likeStatus: likedMovieMap[m.id] ?? null,
       }))
@@ -170,7 +176,14 @@ export class MovieService {
   }
 
   /* istanbul ignore next */
-  async createMovie(movieRest: CreateMovieDto, qr: QueryRunner, detailId: number, director: Director, userId: number, filename: string) {
+  async createMovie(
+    movieRest: CreateMovieDto,
+    qr: QueryRunner,
+    detailId: number,
+    director: Director,
+    userId: number,
+    filename: string,
+  ) {
     return await qr.manager
       .createQueryBuilder()
       .insert()
@@ -200,7 +213,11 @@ export class MovieService {
     await rename(tempMovieFilePath, newMovieFilePath)
   }
 
-  async processCreateMovie(createMovieDto: CreateMovieDto, userId: number, qr: QueryRunner) {
+  async processCreateMovie(
+    createMovieDto: CreateMovieDto,
+    userId: number,
+    qr: QueryRunner,
+  ) {
     const { genreIds, detail, directorId } = createMovieDto
 
     // transaction 적용을 위해서는 개별 repository가 아니라 createQueryRunner.manager 를 이용해야 하며, 메서드의 첫번째 인수에 사용할 entity를 명시 필요(메서드에 따라 다르니 확인 필요)
@@ -210,8 +227,12 @@ export class MovieService {
     }
     if (genres.length !== genreIds.length) {
       const genreListIds = genres.map((genre) => genre.id)
-      const joinedNotFoundGenreIds = genreIds.filter((genre) => !genreListIds.includes(genre)).join(', ')
-      throw new NotFoundException(`genre with id ${joinedNotFoundGenreIds} not found`)
+      const joinedNotFoundGenreIds = genreIds
+        .filter((genre) => !genreListIds.includes(genre))
+        .join(', ')
+      throw new NotFoundException(
+        `genre with id ${joinedNotFoundGenreIds} not found`,
+      )
     }
 
     const director = await qr.manager.findOneBy(Director, { id: directorId })
@@ -224,7 +245,14 @@ export class MovieService {
 
     const filename = createMovieDto.movieFileName
 
-    const movieInsertResult = await this.createMovie(createMovieDto, qr, detailId, director, userId, filename)
+    const movieInsertResult = await this.createMovie(
+      createMovieDto,
+      qr,
+      detailId,
+      director,
+      userId,
+      filename,
+    )
     const movieId = movieInsertResult.identifiers[0].id
 
     await this.createMovieGenre(qr, movieId, genreIds)
@@ -235,14 +263,10 @@ export class MovieService {
     // transaction 영향이 없는 부분(다른 로직 실행 후) 에서 실행
     await this.renameMovieFile(tempMovieFilePath, newMovieFilePath)
 
-    return await qr.manager
-      .findOne(
-        Movie,
-        {
-          where: { id: movieId },
-          relations: ['detail', 'director', 'genres'],
-        },
-      )
+    return await qr.manager.findOne(Movie, {
+      where: { id: movieId },
+      relations: ['detail', 'director', 'genres'],
+    })
   }
 
   // dummy 데이터 생성 함수
@@ -255,7 +279,7 @@ export class MovieService {
 
     const genres = await this.genreRepository.find()
     const genresCount = genres.length - 1
-    const directorsCount = await this.directorRepository.count() - 1
+    const directorsCount = (await this.directorRepository.count()) - 1
 
     const randomIdxArr = [] as number[]
     for (let num = 0; num < round; num++) {
@@ -292,7 +316,11 @@ export class MovieService {
           .createQueryBuilder()
           .insert()
           .into(Movie)
-          .values({ detail: { id: detailId }, director: { id: directorId }, ...movieRest })
+          .values({
+            detail: { id: detailId },
+            director: { id: directorId },
+            ...movieRest,
+          })
           .execute()
         const movieId = movieInsertResult.identifiers[0].id
 
@@ -304,7 +332,6 @@ export class MovieService {
       }
 
       await qr.commitTransaction()
-
     } catch (e) {
       await qr.rollbackTransaction()
 
@@ -348,7 +375,11 @@ export class MovieService {
   }
 
   /* istanbul ignore next */
-  async updateMovieGenreRelation(qr: QueryRunner, id: number, genreIds: number[]) {
+  async updateMovieGenreRelation(
+    qr: QueryRunner,
+    id: number,
+    genreIds: number[],
+  ) {
     /**
      * relation.of.set 의 경우 관련 데이터를 다 지우고 새로 등록하므로,
      * 특정 데이터를 넣고 지우는 addAndRemove 보다 오히려 깔끔하다고 볼 수 있음
@@ -363,16 +394,17 @@ export class MovieService {
     /**
      * 다대다인 경우에는 다음과 같이 기존 관계 전체 삭제 후 새로운 관계 설정으로 처리
      */
-      // 1. 기존 관계 ID 모두 가져오기
+    // 1. 기존 관계 ID 모두 가져오기
     const existingGenres = await qr.manager
-        .createQueryBuilder()
-        .relation(Movie, 'genres')
-        .of(id)
-        .loadMany()
-    const existingGenreIds = existingGenres.map(g => g.id)
+      .createQueryBuilder()
+      .relation(Movie, 'genres')
+      .of(id)
+      .loadMany()
+    const existingGenreIds = existingGenres.map((g) => g.id)
 
     // 2. 기존 관계 제거 + 새 관계 추가
-    await qr.manager.createQueryBuilder()
+    await qr.manager
+      .createQueryBuilder()
       .relation(Movie, 'genres')
       .of(id)
       .addAndRemove(genreIds, existingGenreIds)
@@ -384,7 +416,8 @@ export class MovieService {
     await qr.startTransaction()
 
     try {
-      const { genreIds, detail, directorId, movieFileName, ...movieRest } = updateMovieDto
+      const { genreIds, detail, directorId, movieFileName, ...movieRest } =
+        updateMovieDto
 
       const movie = await this.findMovie(id)
       if (!movie) {
@@ -392,22 +425,30 @@ export class MovieService {
       }
 
       if (genreIds && genreIds.length > 0) {
-        const genres = await qr.manager.find(Genre, { where: { id: In(genreIds) } })
+        const genres = await qr.manager.find(Genre, {
+          where: { id: In(genreIds) },
+        })
         if (genres.length < 1) {
           throw new NotFoundException('genre not found')
         }
 
         if (genres.length !== genreIds.length) {
           const genreListIds = genres.map((genre: Genre) => genre.id)
-          const joinedNotFoundGenreIds = genreIds.filter((genre) => !genreListIds.includes(genre)).join(', ')
-          throw new NotFoundException(`${joinedNotFoundGenreIds} genre not found`)
+          const joinedNotFoundGenreIds = genreIds
+            .filter((genre) => !genreListIds.includes(genre))
+            .join(', ')
+          throw new NotFoundException(
+            `${joinedNotFoundGenreIds} genre not found`,
+          )
         }
 
         await this.updateMovieGenreRelation(qr, id, genreIds)
       }
 
       if (directorId) {
-        const director = await qr.manager.findOneBy(Director, { id: directorId })
+        const director = await qr.manager.findOneBy(Director, {
+          id: directorId,
+        })
 
         if (!director) {
           throw new NotFoundException('director not found')
@@ -420,7 +461,10 @@ export class MovieService {
         await this.updateMovieDetail(qr, detail, movie)
       }
 
-      const updateData = { ...movieRest, movieFilePath: movieFileName } as UpdateMovieDto
+      const updateData = {
+        ...movieRest,
+        movieFilePath: movieFileName,
+      } as UpdateMovieDto
 
       await this.updateMovie(qr, updateData, id)
 
@@ -439,7 +483,8 @@ export class MovieService {
   async deleteMovie(qr: QueryRunner, id: number) {
     // cascade 가 있음에 따라 movie 부터 삭제 후 연관 테이블의 데이터 삭제 진행
     // createQueryBuilder 의 delete 사용하는 경우 from 메서드를 추가하고 인수로 entity 명시 필수
-    await qr.manager.createQueryBuilder()
+    await qr.manager
+      .createQueryBuilder()
       .delete()
       .from(Movie)
       .where('id = :id', { id })
@@ -490,7 +535,12 @@ export class MovieService {
   }
 
   /* istanbul ignore next */
-  async updateMovieUserLike(qr: QueryRunner, isLike: boolean, userId: number, movieId: number) {
+  async updateMovieUserLike(
+    qr: QueryRunner,
+    isLike: boolean,
+    userId: number,
+    movieId: number,
+  ) {
     await qr.manager
       .createQueryBuilder()
       .update(MovieUserLike)
@@ -501,7 +551,12 @@ export class MovieService {
   }
 
   /* istanbul ignore next */
-  async insertMovieUserLike(qr: QueryRunner, movieId: number, userId: number, isLike: boolean) {
+  async insertMovieUserLike(
+    qr: QueryRunner,
+    movieId: number,
+    userId: number,
+    isLike: boolean,
+  ) {
     await qr.manager
       .createQueryBuilder()
       .insert()
@@ -510,7 +565,12 @@ export class MovieService {
       .execute()
   }
 
-  async toggleMovieLike(movieId: number, userId: number, isLike: boolean, qr: QueryRunner) {
+  async toggleMovieLike(
+    movieId: number,
+    userId: number,
+    isLike: boolean,
+    qr: QueryRunner,
+  ) {
     const movie = await qr.manager.findOneBy(Movie, { id: movieId })
 
     if (!movie) {
@@ -523,29 +583,51 @@ export class MovieService {
       throw new UnauthorizedException('사용자 정보가 존재하지 않습니다.')
     }
 
-    const likeRecord = await qr.manager.findOne(MovieUserLike, { where: { userId, movieId } })
+    const likeRecord = await qr.manager.findOne(MovieUserLike, {
+      where: { userId, movieId },
+    })
 
     if (likeRecord) {
       if (isLike === likeRecord.isLike) {
         await this.deleteMovieUserLike(qr, movieId, userId)
 
-        await qr.manager.decrement(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1)
+        await qr.manager.decrement(
+          Movie,
+          { id: movieId },
+          isLike ? 'likeCount' : 'dislikeCount',
+          1,
+        )
       } else {
         await this.updateMovieUserLike(qr, isLike, userId, movieId)
 
-        await qr.manager.increment(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1)
-        await qr.manager.decrement(Movie, { id: movieId }, !isLike ? 'likeCount' : 'dislikeCount', 1)
+        await qr.manager.increment(
+          Movie,
+          { id: movieId },
+          isLike ? 'likeCount' : 'dislikeCount',
+          1,
+        )
+        await qr.manager.decrement(
+          Movie,
+          { id: movieId },
+          !isLike ? 'likeCount' : 'dislikeCount',
+          1,
+        )
       }
     } else {
       await this.insertMovieUserLike(qr, movieId, userId, isLike)
 
-      await qr.manager.increment(Movie, { id: movieId }, isLike ? 'likeCount' : 'dislikeCount', 1)
+      await qr.manager.increment(
+        Movie,
+        { id: movieId },
+        isLike ? 'likeCount' : 'dislikeCount',
+        1,
+      )
     }
 
     // const result = await qr.manager.findOneBy(MovieUserLike, { movie: { id: movieId }, user: { id: userId } })
     const result = await qr.manager.findOne(MovieUserLike, {
       where: { movieId, userId },
-    });
+    })
 
     return {
       isLike: result?.isLike ?? null,

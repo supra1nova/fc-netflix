@@ -9,7 +9,8 @@ import {
   ParseIntPipe,
   Patch,
   Post,
-  Query, UseInterceptors,
+  Query,
+  UseInterceptors,
 } from '@nestjs/common'
 import { MovieService } from './movie.service'
 import { CreateMovieDto } from './dto/create-movie.dto'
@@ -50,11 +51,10 @@ export class MovieControllerV2 {
 @ApiBearerAuth()
 @UseInterceptors(ClassSerializerInterceptor)
 export class MovieController {
-  constructor(private readonly movieService: MovieService) {
-  }
+  constructor(private readonly movieService: MovieService) {}
 
   @Get('recent')
-  @Public()
+  // @Public()
   // @UseInterceptor와 CacheInterceptor를 이용해 캐싱하게 되는 경우 url을 기반으로 캐싱하게 되므로 url이 키가 되어 캐싱됨
   @UseInterceptors(CacheInterceptor)
   // @CacheKey 가 별도 존재시 아무리 UseInterceptor와 CacehInterceptor 를 이용해도 지정된 키를 이용해 저장됨
@@ -86,15 +86,12 @@ export class MovieController {
     status: 401,
     description: '토큰이 만료 되었을때.',
   })
-  getMovieList(
-    @Query() dto: GetMoviesDto,
-    @UserId() userId?: number,
-  ) {
+  getMovieList(@Query() dto: GetMoviesDto, @UserId() userId?: number) {
     return this.movieService.findMovieList(dto, userId)
   }
 
   @Get(':id')
-  @Public()
+  // @Public()
   // getOneMovie(@Param('id', ParseIntPipe) id: number) {
   getMovie(
     @Param(
@@ -251,7 +248,10 @@ export class MovieController {
 
   @Patch(':id')
   @RBAC(Role.ADMIN)
-  patchMovie(@Param('id', new ParseIntPipe()) id: number, @Body() updateMovieDto: UpdateMovieDto) {
+  patchMovie(
+    @Param('id', new ParseIntPipe()) id: number,
+    @Body() updateMovieDto: UpdateMovieDto,
+  ) {
     return this.movieService.processUpdateMovie(id, updateMovieDto)
   }
 
@@ -262,8 +262,8 @@ export class MovieController {
   }
 
   /* istanbul ignore next */
-  @Public()
   @Post('bulk-upload/:round')
+  @Public()
   postMovies(@Param('round', new ParseIntPipe()) round: number) {
     return this.movieService.createDummyMovies(round)
   }
