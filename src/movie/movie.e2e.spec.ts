@@ -3,13 +3,16 @@ import { INestApplication, ValidationPipe } from '@nestjs/common'
 import * as request from 'supertest'
 import { App } from 'supertest/types'
 import { AppModule } from '../app.module'
-import { User } from '../user/entities/user.entity'
+import { Role, User } from '../user/entities/user.entity'
 import { Movie } from './entity/movie.entity'
 import { Director } from '../director/entity/director.entity'
 import { Genre } from '../genre/entities/genre.entity'
 import { MovieDetail } from './entity/movie-detail.entity'
 import { DataSource } from 'typeorm'
 import { MovieUserLike } from './entity/movie-user-like.entity'
+import { AuthService } from '../auth/auth.service'
+import { CreateMovieDto } from './dto/create-movie.dto'
+import { UpdateMovieDto } from './dto/update-movie.dto'
 
 describe('MovieController (e2e)', () => {
   let app: INestApplication<App>
@@ -19,6 +22,8 @@ describe('MovieController (e2e)', () => {
   let movies: Movie[]
   let directors: Director[]
   let genres: Genre[]
+
+  let accessToken: string
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -49,6 +54,9 @@ describe('MovieController (e2e)', () => {
     const movieUserLikeRepository = dataSource.getRepository(MovieUserLike)
     const directorRepository = dataSource.getRepository(Director)
     const genreRepository = dataSource.getRepository(Genre)
+
+    /** 토큰 위해 auth service 호출 */
+    let authService = moduleFixture.get(AuthService)
 
     /** 데이터 초기화 - delete/clear/truncate */
     /*
@@ -116,6 +124,11 @@ describe('MovieController (e2e)', () => {
       }),
     )
     await movieRepository.save(movies)
+
+    accessToken = await authService.issueToken(
+      { sub: users[0].id, role: Role.ADMIN },
+      false,
+    )
   })
 
   beforeEach(async () => {})
@@ -128,13 +141,6 @@ describe('MovieController (e2e)', () => {
     await app.close()
   })
 
-  /*it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!')
-  })*/
-
   describe('[GET /movie]', () => {
     it('Should get all movies', async () => {
       const { body, statusCode, error } = await request(
@@ -142,6 +148,115 @@ describe('MovieController (e2e)', () => {
       ).get('/movie')
 
       expect(statusCode).toBe(200)
+      expect(body).toHaveProperty('data')
+      expect(body).toHaveProperty('nextCursor')
+      expect(body).toHaveProperty('count')
+      expect(body.data).toHaveLength(5)
     })
   })
+
+  describe('[GET /movie/recent]', () => {
+    it('Should throw ForbiddenException recent movies', async () => {
+      const { body, statusCode, error } = await request(
+        app.getHttpServer(),
+      ).get('/movie/recent')
+
+      expect(statusCode).toBe(403)
+    })
+
+    it('Should get recent movies', async () => {
+      const { body, statusCode, error } = await request(app.getHttpServer())
+        .get('/movie/recent')
+        .set('Authorization', `Bearer ${accessToken}`)
+
+      expect(statusCode).toBe(200)
+      expect(body).toHaveLength(10)
+    })
+  })
+
+  describe('[GET /movie/{id}', () => {
+    it('should throw NotFoundException if movie does not exist ', async () => {
+      await request(app.getHttpServer())
+        .get('/movie/99')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(404)
+    })
+
+    it('should return movie with specific id', async () => {
+      await request(app.getHttpServer())
+        .get(`/movie/${movies[0].id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('id')
+          expect(res.body).toHaveProperty('title')
+          expect(res.body).toHaveProperty('likeCount')
+          expect(res.body.id).toBe(movies[0].id)
+        })
+    })
+  })
+
+  describe('[Post /movie]', () => {
+    it('Should create movie', async () => {
+      const {
+        body: { fileName },
+      } = await request(app.getHttpServer())
+        .post(`/common/upload/text`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        /**
+         * supertest의 attach 함수로 파일 첨부
+         *   두번재 파라미터에 수신받게 파일명 명시 -> 로직 실행시 첨부된 파일 생성됨
+         * */
+        .attach('file', Buffer.from('test'), 'test.txt')
+        .expect(201)
+
+      const dto = {
+        title: 'e2e test title1',
+        detail: 'e2e test details 1',
+        directorId: directors[0].id,
+        genreIds: genres.map((genre) => genre.id),
+        movieFileName: fileName,
+      } as CreateMovieDto
+
+      await request(app.getHttpServer())
+        .post('/movie')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(dto)
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.title).toBe(dto.title)
+          expect(res.body.detail.detail).toBe(dto.detail)
+          expect(res.body.director.id).toBe(dto.directorId)
+          expect(res.body.genres[0].id).toBe(dto.genreIds[0])
+          expect(res.body.movieFilePath).toContain(dto.movieFileName)
+        })
+    })
+  })
+
+  describe('[Patch /movie/{id}]', () => {
+    it('Should update movie', async () => {
+      const movieId = movies[0].id
+
+      const dto = {
+        title: 'update e2e test title1',
+        detail: 'update e2e test details 1',
+        directorId: directors[1].id,
+        genreIds: [genres[0].id],
+      } as UpdateMovieDto
+
+      await request(app.getHttpServer())
+        .patch(`/movie/${movieId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(dto)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.title).toBe(dto.title)
+          expect(res.body.detail.detail).toBe(dto.detail)
+          expect(res.body.director.id).toBe(dto.directorId)
+          expect(res.body.genres[0].id).toBe(dto.genreIds?.[0])
+        })
+    })
+  })
+
+  describe('[Delete /movie/id]')
 })
