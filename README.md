@@ -6,7 +6,7 @@ NestJS + TypeScript 기반 Netflix 유사 웹 서비스 토이 프로젝트.
 
 ## 📚 프로젝트 목적
 - TypeScript, NestJS, TypeOrm, Swagger 기반 Netflix 형태 백엔드 서비스를 GitHub actions 을 이용해 AWS EC2에 배포함으로써,
-- JWT 인증, Winston 로깅, Redis 캐시, Jest 테스트(Unit/Integration/e2e2), 배포, Swagger 문서화 등 회사에서 수행했던 내용을 간단하게 다시 정리하고, 
+- JWT 인증, Winston 로깅, Redis 캐시, Jest 테스트(Unit/Integration/e2e), 배포, Swagger 문서화 등 회사에서 수행했던 내용을 간단하게 다시 정리하고, 
 - 잘못된 지식을 다시 고쳐 올바르게 기록하는 것을 주 목적으로 함. 
 
 ---
@@ -27,6 +27,8 @@ NestJS + TypeScript 기반 Netflix 유사 웹 서비스 토이 프로젝트.
     - NestJS @nestjs/swagger 활용
     - /doc 엔드포인트 제공
     - 모든 모듈별 엔드포인트 및 요청/응답 스키마 확인 가능
+- **테스트**
+    - Jest 이용 Unit/Integration/e2e 테스트 활용
 
 ---
 
@@ -63,6 +65,9 @@ NestJS + TypeScript 기반 Netflix 유사 웹 서비스 토이 프로젝트.
     - CRUD 정상/예외 처리
 - **Integration 테스트**
     - DB + Redis 연결 후 CRUD 및 캐시 흐름 검증
+- **E2E 테스트**
+    - 실제 HTTP 요청 기반 API 흐름 검증 
+    - Supertest 사용 (request(app.getHttpServer()))
 
 ---
 
@@ -80,14 +85,14 @@ NestJS + TypeScript 기반 Netflix 유사 웹 서비스 토이 프로젝트.
 ---
 
 ## 현재 작업 중 및 예정 사항
-- e2e 작업중
 - AWS 배포 예정
 - Docker 컨테이너화 예정
 - CI/CD 파이프라인 예정
+- 전체 서비스 e2e 예정
 - 전역적인 Redis 캐시 활용으로 조회 성능 최적화 예정
 - MSA 아키텍쳐 적용해 서비스 분리 예정
 - 로그 Sentry 오류 추적 예정
-- dev 환경 이상인 경우 Winston 로그 저장 예정
+- dev 환경 레벨 이상인 경우 Winston 로그 저장 예정
 - 암호화 해시 알고리즘 argon2 로 전환 예정
 
 ---
