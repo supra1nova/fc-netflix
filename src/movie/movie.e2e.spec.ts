@@ -50,7 +50,6 @@ describe('MovieController (e2e)', () => {
     const directorRepository = dataSource.getRepository(Director)
     const genreRepository = dataSource.getRepository(Genre)
 
-
     /** 데이터 초기화 - delete/clear/truncate */
     /*
     await genreRepository.clear()
@@ -122,6 +121,9 @@ describe('MovieController (e2e)', () => {
   beforeEach(async () => {})
 
   afterAll(async () => {
+    /** 테스트 이후 DB 커넥션 종료 */
+    await dataSource.destroy()
+
     /** 테스트 이후 NestJS 앱 종료 처리 */
     await app.close()
   })
@@ -138,8 +140,6 @@ describe('MovieController (e2e)', () => {
       const { body, statusCode, error } = await request(
         app.getHttpServer(),
       ).get('/movie')
-
-      console.log(body)
 
       expect(statusCode).toBe(200)
     })
