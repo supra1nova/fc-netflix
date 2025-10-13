@@ -1,12 +1,13 @@
 # FC-Netflix
 
-NestJS + TypeScript 기반 Netflix 유사 CRUD 서비스 토이 프로젝트.  
+NestJS + TypeScript 기반 Netflix 유사 웹 서비스 토이 프로젝트.  
 
 ---
 
 ## 📚 프로젝트 목적
-- NestJS + TypeScript 기반으로 Netflix 형태 서비스의 백엔드단 서비스 구현
-- JWT 인증, Redis 캐시, Winston 로깅, 테스트(Unit/Integration/e2e2) 내용 학습/복기
+- TypeScript, NestJS, TypeOrm, Swagger 기반 Netflix 형태 백엔드 서비스를 GitHub actions 을 이용해 AWS EC2에 배포함으로써,
+- JWT 인증, Winston 로깅, Redis 캐시, Jest 테스트(Unit/Integration/e2e2), 배포, Swagger 문서화 등 회사에서 수행했던 내용을 간단하게 다시 정리하고, 
+- 잘못된 지식을 다시 고쳐 올바르게 기록하는 것을 주 목적으로 함. 
 
 ---
 
@@ -22,6 +23,10 @@ NestJS + TypeScript 기반 Netflix 유사 CRUD 서비스 토이 프로젝트.
 - **Winston 로깅**
     - 콘솔 로그 중심
     - 환경변수 기반 로그 레벨 관리
+- **문서화**
+    - NestJS @nestjs/swagger 활용
+    - /doc 엔드포인트 제공
+    - 모든 모듈별 엔드포인트 및 요청/응답 스키마 확인 가능
 
 ---
 
@@ -64,6 +69,13 @@ NestJS + TypeScript 기반 Netflix 유사 CRUD 서비스 토이 프로젝트.
 ## Winston 로깅
 - 로그 레벨: debug
 - 파일 로그 로컬 미생성 -> 추후 적용 예정
+
+---
+
+## Swagger 사용
+- 서버 실행 후 /doc 접속
+- API 엔드포인트 확인 및 테스트 가능
+- NestJS 모듈에서 @ApiTags, @ApiOperation, @ApiResponse 등 내장 데코레이터 외 커스텀 데코레이터 사용
 
 ---
 
