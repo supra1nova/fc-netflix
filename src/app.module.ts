@@ -73,6 +73,9 @@ import * as winston from 'winston'
           User,
         ],
         synchronize: true,
+        ssl: {
+          rejectUnauthorized: false,
+        },
       }),
       inject: [ConfigService],
     }),
