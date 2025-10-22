@@ -73,9 +73,12 @@ import * as winston from 'winston'
           User,
         ],
         synchronize: true,
+        // 로컬에서 aws 접속 테스트용
+        /*
         ssl: {
-          rejectUnauthorized: false,
+          rejectUnauthorized: true,
         },
+        */
       }),
       inject: [ConfigService],
     }),
