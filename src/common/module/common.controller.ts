@@ -1,12 +1,13 @@
 import { BadRequestException, Controller, Post, UploadedFile, UseInterceptors } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { ApiBearerAuth } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger'
 
 @Controller('common')
 @ApiBearerAuth()
 export class CommonController {
   @Post('upload/text')
-  @UseInterceptors(FileInterceptor('file', {
+  // FileInterceptor에 들어가는 fieldName을 controller parameter 와 맞춰야함
+  @UseInterceptors(FileInterceptor('text', {
     limits: {
       fileSize: 1000 * 1000 * 20,
     },
@@ -18,6 +19,19 @@ export class CommonController {
       return callback(null, true)
     },
   }))
+  // ApiConsumes 와 ApiBody 는 swagger 에서 파일을 받기 위해 설정 필요
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   postText(
     @UploadedFile() text: Express.Multer.File,
   ) {
