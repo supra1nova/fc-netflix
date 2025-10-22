@@ -14,7 +14,7 @@ import {
 import { GenreService } from './genre.service'
 import { CreateGenreDto } from './dto/create-genre.dto'
 import { UpdateGenreDto } from './dto/update-genre.dto'
-import { ApiBearerAuth } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 
 @Controller('genre')
 @ApiBearerAuth()
@@ -24,6 +24,7 @@ export class GenreController {
   }
 
   @Get()
+  @ApiQuery({ name: 'name', required: false, type: String })
   getManyGenre(@Query('name') name?: string) {
     return this.genreService.findAllGenre(name)
   }
