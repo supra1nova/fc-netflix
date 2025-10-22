@@ -73,12 +73,10 @@ import * as winston from 'winston'
           User,
         ],
         synchronize: true,
-        // 로컬에서 aws 접속 테스트용
-        /*
+        // 임시 db 접속용 - https 없이 접근 거부 여부 (기본은 값 없음, 허용하기 위해선 false)
         ssl: {
-          rejectUnauthorized: true,
+          rejectUnauthorized: false,
         },
-        */
       }),
       inject: [ConfigService],
     }),
