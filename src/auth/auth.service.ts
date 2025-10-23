@@ -38,6 +38,13 @@ export class AuthService {
     const REFRESH_TOKEN_SECRET = this.configService.get<string>(ConstVariable.REFRESH_TOKEN_SECRET)
     const ACCESS_TOKEN_SECRET = this.configService.get<string>(ConstVariable.ACCESS_TOKEN_SECRET)
 
+    const REFRESH_TOKEN_EXPIRES_IN = this.configService.get<string>(ConstVariable.REFRESH_TOKEN_EXPIRES_IN)
+    // const ACCESS_TOKEN_EXPIRES_IN = this.configService.get<string>(ConstVariable.ACCESS_TOKEN_EXPIRES_IN_MINUTE)
+    const ACCESS_TOKEN_EXPIRES_IN =
+      this.configService.get<string>(ConstVariable.ENV)
+        ? this.configService.get<number>(ConstVariable.ACCESS_TOKEN_EXPIRES_IN_MINUTE) as number * 60
+        : this.configService.get<string>(ConstVariable.ACCESS_TOKEN_EXPIRES_IN)
+
     return {
       // sign 의 경우 블로킹 가능 -> 이벤트 루프가 멈출수 있으므로 비동기처리
       refreshToken: await this.jwtService.signAsync(
@@ -48,7 +55,7 @@ export class AuthService {
         },
         {
           secret: REFRESH_TOKEN_SECRET,
-          expiresIn: '24h',
+          expiresIn: REFRESH_TOKEN_EXPIRES_IN,
         },
       ),
       accessToken: await this.jwtService.signAsync(
@@ -60,8 +67,9 @@ export class AuthService {
         {
           secret: ACCESS_TOKEN_SECRET,
           // access token 의 경우 짧게 가져가서 보안적으로 안전하게 처리
-          expiresIn: 60 * 5,
+          // expiresIn: 60 * 5,
           // expiresIn: '24h',
+          expiresIn: ACCESS_TOKEN_EXPIRES_IN,
         },
       ),
     }
