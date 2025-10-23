@@ -25,7 +25,7 @@ import { QueryRunner as QR } from '../common/decorator/query-runner.decorator'
 import { QueryRunner } from 'typeorm'
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
 import { Throttle } from '../common/decorator/throttle.decorator'
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger'
 
 /*
 @Controller({
@@ -74,12 +74,6 @@ export class MovieController {
   })
   @ApiOperation({
     description: '[Movie] 를 Pagination 하는 Api',
-  })
-  @ApiQuery({
-    name: 'userId',
-    required: false,
-    description: '검색 대상 유저 id',
-    example: '1',
   })
   @ApiResponse({
     status: 200,

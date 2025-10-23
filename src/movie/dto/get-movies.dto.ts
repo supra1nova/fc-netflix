@@ -4,12 +4,12 @@ import { ApiProperty } from '@nestjs/swagger'
 
 // export class GetMoviesDto extends PagePaginationDto {
 export class GetMoviesDto extends CursorPaginationDto {
-  @IsString()
-  @IsOptional()
   @ApiProperty({
-    description: '영화의 제목',
-    example: '겨울왕국',
+    description: '영화 제목',
+    // example: '겨울왕국',
     required: false,
   })
+  @IsString()
+  @IsOptional()
   title?: string
 }

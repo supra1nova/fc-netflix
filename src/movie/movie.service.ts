@@ -101,7 +101,7 @@ export class MovieService {
 
     const nextCursor = this.commonService.generateNextCursor(data, dto.order)
 
-    if (userId) {
+    if (userId && count > 0) {
       const movieIds = data.map((movie) => movie.id)
 
       const likedMovies = await this.getLikedMoviesQb(movieIds, userId)
