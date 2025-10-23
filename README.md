@@ -11,7 +11,7 @@ NestJS + TypeScript 기반 Netflix 유사 웹 서비스 토이 프로젝트.
 
 ---
 
-## 주요 기능
+## 주요 구현 기능
 - **영화, 장르, 감독, 유저 CRUD**
 - **회원가입 / 로그인**
     - Base64 ID/Password 사용
@@ -29,6 +29,8 @@ NestJS + TypeScript 기반 Netflix 유사 웹 서비스 토이 프로젝트.
     - 모든 모듈별 엔드포인트 및 요청/응답 스키마 확인 가능
 - **테스트**
     - Jest 이용 Unit/Integration/e2e 테스트 활용
+- **배포**
+    - AWS lightsail 테스트 배포&종료
 
 ---
 
@@ -85,7 +87,6 @@ NestJS + TypeScript 기반 Netflix 유사 웹 서비스 토이 프로젝트.
 ---
 
 ## 현재 작업 중 및 예정 사항
-- AWS 배포 예정
 - Docker 컨테이너화 예정
 - CI/CD 파이프라인 예정
 - 전체 서비스 e2e 예정
